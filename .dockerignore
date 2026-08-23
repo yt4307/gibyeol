@@ -1,0 +1,15 @@
+.git
+.env
+.idea
+.vscode
+node_modules
+.pnpm-store
+frontend/.next
+frontend/out
+backend/vendor
+backend/var
+contracts/cache
+contracts/out
+contracts/broadcast
+coverage
+*.log
