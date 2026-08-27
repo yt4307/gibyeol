@@ -6,6 +6,7 @@ import {
   decryptTextGtx1,
   encodeLetterContext,
   hexToBytes,
+  MEDIA_TYPE,
   openSealBox,
   sha256,
   unwrapLetterKeyForRecipient,
@@ -39,27 +40,39 @@ export function useInbox(address?: `0x${string}`) {
   }, [address]);
 
   useEffect(() => { queueMicrotask(() => { void refresh(); }); }, [refresh]);
-  useEffect(() => () => { opened?.mediaUrls.forEach((url) => URL.revokeObjectURL(url)); }, [opened]);
+  useEffect(() => () => { opened?.media.forEach(({ url }) => URL.revokeObjectURL(url)); }, [opened]);
 
   const decryptWith = useCallback(async (letter: InboxLetter, keyPair: MailboxKeyPair) => {
-    const registeredPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [letter.recipient, letter.recipientKeyId] });
-    if (bytesToHex(keyPair.publicKey) !== registeredPublicKey.slice(2).toLowerCase()) {
-      throw new Error("Passkey에서 복구한 키가 온체인 메일박스 공개키와 다릅니다.");
+    let letterKey: Uint8Array | undefined;
+    try {
+      const registeredPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [letter.recipient, letter.recipientKeyId] });
+      if (bytesToHex(keyPair.publicKey) !== registeredPublicKey.slice(2).toLowerCase()) {
+        throw new Error("Passkey에서 복구한 키가 온체인 메일박스 공개키와 다릅니다.");
+      }
+      const calldata = await loadLetterCalldata(letter);
+      const archiveResponse = await fetch(`${apiBaseUrl}/packages/${letter.archiveSha256.slice(2)}`);
+      if (!archiveResponse.ok) throw new Error("편지 미디어 패키지를 찾을 수 없습니다.");
+      const archive = new Uint8Array(await archiveResponse.arrayBuffer());
+      const actualHash = [...await sha256(archive)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      if (actualHash !== letter.archiveSha256.slice(2).toLowerCase()) throw new Error("패키지 SHA-256이 온체인 기록과 다릅니다.");
+      const context = encodeLetterContext({ chainId, contractAddress, letterId: letter.letterId, sender: letter.sender, recipient: letter.recipient });
+      letterKey = await unwrapLetterKeyForRecipient(hexToBytes(calldata.sealedKey), keyPair, createQuicknetTlock());
+      const [message, media] = await Promise.all([
+        decryptTextGtx1(hexToBytes(calldata.encryptedText), letterKey, context),
+        decryptGbyl(archive, letterKey, context),
+      ]);
+      const result: OpenedLetter = {
+        message,
+        media: media.map((item) => ({
+          url: URL.createObjectURL(new Blob([new Uint8Array(item.bytes)], { type: mediaType(item.codec) })),
+          kind: item.type === MEDIA_TYPE.TIMELAPSE ? "video" : "image",
+        })),
+      };
+      setOpened(result); return result;
+    } finally {
+      letterKey?.fill(0);
+      keyPair.privateKey.fill(0);
     }
-    const calldata = await loadLetterCalldata(letter);
-    const archiveResponse = await fetch(`${apiBaseUrl}/packages/${letter.archiveSha256.slice(2)}`);
-    if (!archiveResponse.ok) throw new Error("편지 미디어 패키지를 찾을 수 없습니다.");
-    const archive = new Uint8Array(await archiveResponse.arrayBuffer());
-    const actualHash = [...await sha256(archive)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    if (actualHash !== letter.archiveSha256.slice(2).toLowerCase()) throw new Error("패키지 SHA-256이 온체인 기록과 다릅니다.");
-    const context = encodeLetterContext({ chainId, contractAddress, letterId: letter.letterId, sender: letter.sender, recipient: letter.recipient });
-    const letterKey = await unwrapLetterKeyForRecipient(hexToBytes(calldata.sealedKey), keyPair, createQuicknetTlock());
-    const [message, media] = await Promise.all([
-      decryptTextGtx1(hexToBytes(calldata.encryptedText), letterKey, context),
-      decryptGbyl(archive, letterKey, context),
-    ]);
-    const result = { message, mediaUrls: media.map((item) => URL.createObjectURL(new Blob([new Uint8Array(item.bytes)], { type: mediaType(item.codec) }))) };
-    setOpened(result); return result;
   }, []);
 
   const open = useCallback(async (letter: InboxLetter) => {
@@ -85,16 +98,22 @@ export function useInbox(address?: `0x${string}`) {
       const recoveryCiphertext = await createQuicknetTlock().decrypt(hexToBytes(envelopes.recoveryEnvelope));
       const clientSeed = crypto.getRandomValues(new Uint8Array(32));
       const { mailboxKeyPairFromSeed } = await import("@gibyeol/protocol");
-      const clientPair = await mailboxKeyPairFromSeed(clientSeed);
-      clientSeed.fill(0);
-      const response = await fetch(`${apiBaseUrl}/recovery/unwrap`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId: letter.recipientKeyId, recoveryCiphertext: encode(recoveryCiphertext), clientPublicKey: encode(clientPair.publicKey) }) });
-      if (!response.ok) throw new Error("복구 seed를 확인하지 못했습니다.");
-      const body = await response.json() as { sealedSeed: string };
-      const mailboxSeed = await openSealBox(decode(body.sealedSeed), clientPair);
+      let clientPair: MailboxKeyPair | undefined;
       try {
-        return await decryptWith(letter, await mailboxKeyPairFromSeed(mailboxSeed));
+        clientPair = await mailboxKeyPairFromSeed(clientSeed);
+        const response = await fetch(`${apiBaseUrl}/recovery/unwrap`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId: letter.recipientKeyId, recoveryCiphertext: encode(recoveryCiphertext), clientPublicKey: encode(clientPair.publicKey) }) });
+        if (!response.ok) throw new Error("복구 seed를 확인하지 못했습니다.");
+        const body = await response.json() as { sealedSeed: string };
+        const mailboxSeed = await openSealBox(decode(body.sealedSeed), clientPair);
+        try {
+          return await decryptWith(letter, await mailboxKeyPairFromSeed(mailboxSeed));
+        } finally {
+          mailboxSeed.fill(0);
+        }
       } finally {
-        mailboxSeed.fill(0);
+        clientSeed.fill(0);
+        recoveryCiphertext.fill(0);
+        clientPair?.privateKey.fill(0);
       }
     } catch (cause) { const message = cause instanceof Error ? cause.message : "메일박스를 복구하지 못했습니다."; setError(message); throw cause; }
     finally { setBusy(false); }

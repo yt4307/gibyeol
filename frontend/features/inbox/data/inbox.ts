@@ -8,4 +8,5 @@ export type InboxLetter = {
   blockNumber: bigint;
 };
 
-export type OpenedLetter = { message: string; mediaUrls: string[] };
+export type OpenedMedia = { url: string; kind: "image" | "video" };
+export type OpenedLetter = { message: string; media: OpenedMedia[] };

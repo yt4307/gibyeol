@@ -28,30 +28,34 @@ export function useMailboxOnboarding(address?: `0x${string}`) {
     setBusy(true); setError(null);
     try {
       const mailbox = await createPasskeyMailbox(address);
-      const recoveryPublicKey = await publicClient.readContract({
-        address: contractAddress, abi: contractAbi, functionName: "RECOVERY_PUBLIC_KEY",
-      });
-      const recoveryEnvelope = await createRecoveryEnvelope(
-        mailbox.seed,
-        hexToBytes(recoveryPublicKey, 32),
-        createQuicknetTlock(),
-      );
-      mailbox.seed.fill(0);
-      const client = walletClient();
-      const hash = await client.writeContract({
-        account: address,
-        address: contractAddress,
-        abi: contractAbi,
-        functionName: "registerMailboxKey",
-        args: [toHex(mailbox.keyPair.publicKey), toHex(mailbox.envelope), toHex(recoveryEnvelope)],
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
-      const nextKeyId = Number(await publicClient.readContract({
-        address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [address],
-      }));
-      localStorage.setItem(mailboxEnvelopeStorageKey(address, nextKeyId), bytesToHex(mailbox.envelope));
-      setKeyId(nextKeyId);
-      return nextKeyId;
+      try {
+        const recoveryPublicKey = await publicClient.readContract({
+          address: contractAddress, abi: contractAbi, functionName: "RECOVERY_PUBLIC_KEY",
+        });
+        const recoveryEnvelope = await createRecoveryEnvelope(
+          mailbox.seed,
+          hexToBytes(recoveryPublicKey, 32),
+          createQuicknetTlock(),
+        );
+        const client = walletClient();
+        const hash = await client.writeContract({
+          account: address,
+          address: contractAddress,
+          abi: contractAbi,
+          functionName: "registerMailboxKey",
+          args: [toHex(mailbox.keyPair.publicKey), toHex(mailbox.envelope), toHex(recoveryEnvelope)],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        const nextKeyId = Number(await publicClient.readContract({
+          address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [address],
+        }));
+        localStorage.setItem(mailboxEnvelopeStorageKey(address, nextKeyId), bytesToHex(mailbox.envelope));
+        setKeyId(nextKeyId);
+        return nextKeyId;
+      } finally {
+        mailbox.seed.fill(0);
+        mailbox.keyPair.privateKey.fill(0);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "메일박스를 만들지 못했습니다.");
       throw cause;
