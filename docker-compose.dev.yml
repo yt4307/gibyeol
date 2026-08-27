@@ -62,6 +62,8 @@ services:
       WEB_ORIGIN: ${DEV_WEB_ORIGIN:-http://localhost:3001}
       API_ORIGIN: ${DEV_API_ORIGIN:-http://localhost:8081}
       PACKAGE_STORAGE_PATH: /var/lib/gibyeol/packages
+      DEFAULT_URI: ${DEV_API_ORIGIN:-http://localhost:8081}
+      LOCK_DSN: flock
     depends_on:
       db:
         condition: service_healthy
