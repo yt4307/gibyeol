@@ -1,8 +1,10 @@
+import { palette } from "./tokens";
+
 export const theme = {
   colors: {
-    background: "#10100f",
-    foreground: "#f7f2e8",
-    accent: "#d1a75d",
+    background: palette.neutral[200],
+    foreground: palette.neutral[1300],
+    accent: palette.brand[500],
   },
 } as const;
 

@@ -5,11 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "storybook": "storybook dev -p 6006 --host 0.0.0.0",
+    "build:storybook": "storybook build",
     "package:dothome": "tsx scripts/package-dothome.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@gibyeol/protocol": "workspace:*",
@@ -20,12 +23,15 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "10.5.10",
+    "@storybook/nextjs-vite": "10.5.10",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
+    "storybook": "10.5.10",
     "tsx": "4.23.12",
     "typescript": "^5.9.0"
   }

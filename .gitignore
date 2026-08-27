@@ -11,6 +11,7 @@ node_modules/
 pnpm-debug.log*
 .next/
 frontend/out/
+frontend/storybook-static/
 backend/var/
 contracts/cache/
 contracts/out/
