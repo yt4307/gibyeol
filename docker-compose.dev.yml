@@ -18,6 +18,8 @@ services:
       NEXT_PUBLIC_WEB_ORIGIN: ${DEV_WEB_ORIGIN:-http://localhost:3001}
       NEXT_PUBLIC_RPC_URL: ${DEV_NEXT_PUBLIC_RPC_URL:-http://localhost:8546}
       NEXT_PUBLIC_API_BASE_URL: ${DEV_NEXT_PUBLIC_API_BASE_URL:-http://localhost:8081/api/v1}
+      NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS: ${NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}
+      NEXT_PUBLIC_DEPLOYMENT_BLOCK: ${NEXT_PUBLIC_DEPLOYMENT_BLOCK:-0}
     command: pnpm --filter @gibyeol/frontend exec next dev --hostname 0.0.0.0
     depends_on:
       backend:

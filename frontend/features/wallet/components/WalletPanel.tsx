@@ -1,0 +1,34 @@
+"use client";
+
+import styled from "@emotion/styled";
+
+export type WalletPanelProps = {
+  address?: string;
+  busy?: boolean;
+  error?: string | null;
+  onConnect: () => void;
+};
+
+export function WalletPanel({ address, busy = false, error, onConnect }: WalletPanelProps) {
+  return (
+    <Panel>
+      <div>
+        <Label>WALLET &amp; SIWE</Label>
+        <Value>{address ? `${address.slice(0, 8)}…${address.slice(-6)}` : "지갑 연결이 필요해요"}</Value>
+      </div>
+      <Button type="button" onClick={onConnect} disabled={busy || Boolean(address)}>
+        {address ? "인증됨" : busy ? "서명 확인 중…" : "지갑 연결"}
+      </Button>
+      {error && <ErrorText role="alert">{error}</ErrorText>}
+    </Panel>
+  );
+}
+
+const Panel = styled.section`
+  display: grid; grid-template-columns: 1fr auto; gap: var(--space-3); align-items: center;
+  padding: var(--space-5); background: var(--color-neutral-100); border: 1px solid var(--color-neutral-300); border-radius: 16px;
+`;
+const Label = styled.p`font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--color-text-muted);`;
+const Value = styled.p`margin-top: var(--space-2); font-weight: 500;`;
+const Button = styled.button`min-height: 42px; padding: 0 var(--space-5); border: 0; border-radius: 999px; color: white; background: var(--color-neutral-1300); cursor: pointer; &:disabled { opacity: .55; cursor: default; }`;
+const ErrorText = styled.p`grid-column: 1 / -1; color: var(--color-status-error); font-size: var(--font-size-100);`;
