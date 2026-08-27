@@ -7,7 +7,6 @@
     "build:frontend": "pnpm --filter @gibyeol/frontend build",
     "storybook": "pnpm --filter @gibyeol/frontend storybook",
     "build:storybook": "pnpm --filter @gibyeol/frontend build:storybook",
-    "package:dothome": "pnpm --filter @gibyeol/frontend package:dothome",
     "lint:frontend": "pnpm --filter @gibyeol/frontend lint",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",

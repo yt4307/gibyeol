@@ -93,20 +93,6 @@ services:
     entrypoint: ["forge"]
     command: ["--version"]
 
-  dothome-smoke:
-    image: php:8.4-apache
-    profiles: ["dothome"]
-    ports:
-      - "${DOTHOME_SMOKE_PORT:-8090}:80"
-    volumes:
-      - ./dist/dothome/public_html:/var/www/html:ro
-    healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://localhost/api/health.php') === false ? 1 : 0);"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-
 volumes:
   mysql_data:
   frontend_node_modules:

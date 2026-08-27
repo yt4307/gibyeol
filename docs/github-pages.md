@@ -17,6 +17,16 @@ Next.js static export를 GitHub Pages에서 제공한다. Pages는 HTML/CSS/JS�
 
 `basePath`는 client bundle에 포함되는 build-time 값이다. 한 artifact를 root와 subpath에 동시에 배포하지 않는다. URL 구조가 결정되기 전에는 production artifact를 만들지 않는다.
 
+현재 production 후보는 repository Pages 방식으로 고정한다.
+
+| 값 | 현재 설정 |
+|---|---|
+| `WEB_ORIGIN` | `https://yt4307.github.io` |
+| `PAGES_BASE_PATH` | `/gibyeol` |
+| 공개 URL | `https://yt4307.github.io/gibyeol/` |
+
+custom domain으로 전환할 때는 workflow의 두 값을 함께 바꾸고 새 artifact를 생성한다.
+
 ## GitHub Actions 흐름
 
 1. default branch push 또는 `workflow_dispatch`로 시작한다.
@@ -47,6 +57,8 @@ Custom domain을 쓰면 GitHub repository Pages 설정과 DNS를 모두 구성�
 8. Pages → API health 및 인증 E2E가 통과한다.
 
 확인한 commit SHA, workflow run, 배포 URL, 시각을 deployment evidence에 기록한다.
+
+Repository 설정의 **Settings → Pages → Build and deployment → Source**는 `GitHub Actions`로 지정한다. 배포 workflow는 main push와 수동 실행을 지원한다.
 
 ## Rollback
 

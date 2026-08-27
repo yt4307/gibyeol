@@ -7,7 +7,6 @@
     "build": "next build",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0",
     "build:storybook": "storybook build",
-    "package:dothome": "tsx scripts/package-dothome.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -32,7 +31,6 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
     "storybook": "10.5.10",
-    "tsx": "4.23.12",
     "typescript": "^5.9.0"
   }
 }

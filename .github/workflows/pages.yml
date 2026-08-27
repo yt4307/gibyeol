@@ -1,0 +1,73 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v6
+
+      - name: pnpm 준비
+        uses: pnpm/action-setup@v4
+
+      - name: Node.js 준비
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Pages 준비
+        uses: actions/configure-pages@v5
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 프런트엔드 검증
+        run: |
+          pnpm lint:frontend
+          pnpm typecheck
+          pnpm test
+
+      - name: repository Pages 산출물 생성
+        env:
+          PAGES_BASE_PATH: /gibyeol
+          NEXT_PUBLIC_WEB_ORIGIN: https://yt4307.github.io
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_CHAIN_ID: ${{ vars.NEXT_PUBLIC_CHAIN_ID }}
+          NEXT_PUBLIC_RPC_URL: ${{ vars.NEXT_PUBLIC_RPC_URL }}
+          NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS: ${{ vars.NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS }}
+        run: pnpm build:frontend
+
+      - name: Pages 산출물 업로드
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: frontend/out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 10
+
+    steps:
+      - name: Pages 배포
+        id: deployment
+        uses: actions/deploy-pages@v4
