@@ -6,6 +6,7 @@ services:
     autoconfigure: true
     bind:
       $webOrigin: '%env(WEB_ORIGIN)%'
+      $packageStoragePath: '%env(PACKAGE_STORAGE_PATH)%'
 
   App\:
     resource: '../src/'
