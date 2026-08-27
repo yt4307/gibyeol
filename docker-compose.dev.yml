@@ -61,6 +61,8 @@ services:
       BASE_RPC_URL: ${BASE_RPC_URL:-http://anvil:8545}
       WEB_ORIGIN: ${DEV_WEB_ORIGIN:-http://localhost:3001}
       API_ORIGIN: ${DEV_API_ORIGIN:-http://localhost:8081}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-gibyeol_session}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
       PACKAGE_STORAGE_PATH: /var/lib/gibyeol/packages
       DEFAULT_URI: ${DEV_API_ORIGIN:-http://localhost:8081}
       LOCK_DSN: flock

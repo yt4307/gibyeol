@@ -7,8 +7,13 @@ services:
     bind:
       $webOrigin: '%env(WEB_ORIGIN)%'
       $packageStoragePath: '%env(PACKAGE_STORAGE_PATH)%'
+      $chainId: '%env(int:CHAIN_ID)%'
+      $sessionCookieName: '%env(SESSION_COOKIE_NAME)%'
+      $sessionSameSite: '%env(SESSION_SAME_SITE)%'
 
   App\:
     resource: '../src/'
     exclude:
       - '../src/Kernel.php'
+
+  App\Auth\SiweVerifier: '@App\Auth\ZbkmSiweVerifier'
