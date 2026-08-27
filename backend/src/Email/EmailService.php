@@ -100,6 +100,14 @@ final class EmailService
         }
     }
 
+    public function isVerified(string $walletAddress): bool
+    {
+        return false !== $this->connection->fetchOne(
+            'SELECT 1 FROM mailboxes WHERE wallet_address = ? AND email_verified_at IS NOT NULL',
+            [strtolower($walletAddress)],
+        );
+    }
+
     private function codeHash(string $walletAddress, string $code): string
     {
         return hash_hmac('sha256', $walletAddress."\0".$code, $this->otpHmacKey, true);

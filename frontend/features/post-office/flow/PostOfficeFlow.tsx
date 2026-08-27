@@ -5,6 +5,8 @@ import { useState } from "react";
 import { BrandWordmark } from "@features/home/components/BrandWordmark";
 import { InboxFlow } from "@features/inbox/flow/InboxFlow";
 import { MailboxOnboarding } from "@features/mailbox/components/MailboxOnboarding";
+import { EmailRegistration } from "@features/mailbox/components/EmailRegistration";
+import { useEmailRegistration } from "@features/mailbox/hooks/use-email-registration";
 import { useMailboxOnboarding } from "@features/mailbox/hooks/use-mailbox-onboarding";
 import { SendFlow } from "@features/send/flow/SendFlow";
 import { WalletPanel } from "@features/wallet/components/WalletPanel";
@@ -14,12 +16,14 @@ export function PostOfficeFlow() {
   const [view, setView] = useState<"send" | "inbox">("send");
   const wallet = useWalletSession();
   const mailbox = useMailboxOnboarding(wallet.session?.address);
+  const email = useEmailRegistration(wallet.session?.address);
   return <Shell>
     <Top><BrandWordmark /><DateMark>CHRISTMAS POST · 2026</DateMark></Top>
     <Intro><Eyebrow>미래로 보내는 암호 편지</Eyebrow><h1>오늘의 마음을<br />약속한 날까지.</h1><p>지갑으로 본인을 확인하고, Passkey로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p></Intro>
     <Workspace>
       <WalletPanel address={wallet.session?.address} busy={wallet.busy} error={wallet.error} onConnect={() => { void wallet.connect(); }} />
       {wallet.session && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
+      {mailbox.keyId && mailbox.keyId > 0 && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
       {mailbox.keyId && mailbox.keyId > 0 && wallet.session ? <><Tabs aria-label="우체국 메뉴"><button className={view === "send" ? "active" : ""} onClick={() => setView("send")}>편지 보내기</button><button className={view === "inbox" ? "active" : ""} onClick={() => setView("inbox")}>받은 기별</button></Tabs>{view === "send" ? <SendFlow address={wallet.session.address} /> : <InboxFlow address={wallet.session.address} />}</> : wallet.session && <Hint>편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요.</Hint>}
     </Workspace>
   </Shell>;

@@ -16,6 +16,9 @@ final class EmailControllerTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(401);
 
+        $client->request('GET', '/api/v1/mailbox/email/status');
+        self::assertResponseStatusCodeSame(401);
+
         $client->jsonRequest('POST', '/api/v1/mailbox/email/verify', ['code' => '123456'], [
             'HTTP_ORIGIN' => 'https://yt4307.github.io',
         ]);

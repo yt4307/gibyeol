@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  bytesToHex,
   decryptGbyl,
   decryptTextGtx1,
   encodeLetterContext,
@@ -11,7 +12,7 @@ import {
   type MailboxKeyPair,
 } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
-import { apiBaseUrl, chainId, contractAddress } from "@features/blockchain/data/config";
+import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient } from "@features/blockchain/data/config";
 import { createQuicknetTlock } from "@features/blockchain/data/quicknet-tlock";
 import { openPasskeyMailbox } from "@features/mailbox/data/passkey";
 import { loadInbox, loadLetterCalldata, loadMailboxEnvelopes } from "../data/onchain-inbox";
@@ -41,6 +42,10 @@ export function useInbox(address?: `0x${string}`) {
   useEffect(() => () => { opened?.mediaUrls.forEach((url) => URL.revokeObjectURL(url)); }, [opened]);
 
   const decryptWith = useCallback(async (letter: InboxLetter, keyPair: MailboxKeyPair) => {
+    const registeredPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [letter.recipient, letter.recipientKeyId] });
+    if (bytesToHex(keyPair.publicKey) !== registeredPublicKey.slice(2).toLowerCase()) {
+      throw new Error("Passkey에서 복구한 키가 온체인 메일박스 공개키와 다릅니다.");
+    }
     const calldata = await loadLetterCalldata(letter);
     const archiveResponse = await fetch(`${apiBaseUrl}/packages/${letter.archiveSha256.slice(2)}`);
     if (!archiveResponse.ok) throw new Error("편지 미디어 패키지를 찾을 수 없습니다.");

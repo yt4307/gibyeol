@@ -12,6 +12,16 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class EmailController
 {
+    #[Route('/api/v1/mailbox/email/status', name: 'api_v1_email_status', methods: ['GET'])]
+    public function status(Request $request, EmailService $email): JsonResponse
+    {
+        $walletAddress = $request->attributes->get('_wallet_address');
+        if (!is_string($walletAddress)) {
+            return $this->error('AUTH_REQUIRED', 'A valid session is required.', 401);
+        }
+        return new JsonResponse(['verified' => $email->isVerified($walletAddress)]);
+    }
+
     #[Route('/api/v1/mailbox/email/challenge', name: 'api_v1_email_challenge', methods: ['POST'])]
     public function challenge(Request $request, EmailService $email): JsonResponse
     {

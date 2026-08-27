@@ -15,12 +15,27 @@ function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return output;
 }
 
-function prfOutput(credential: PublicKeyCredential): Uint8Array {
+function prfOutput(credential: PublicKeyCredential): Uint8Array | null {
   const first = (credential.getClientExtensionResults() as PrfResults).prf?.results?.first;
   if (!(first instanceof ArrayBuffer) || first.byteLength !== 32) {
-    throw new Error("이 Passkey는 WebAuthn PRF를 지원하지 않습니다.");
+    return null;
   }
   return new Uint8Array(first);
+}
+
+async function authenticatePrf(credentialId: ArrayBuffer, prfInput: Uint8Array) {
+  const assertion = (await navigator.credentials.get({
+    publicKey: {
+      challenge: asArrayBuffer(secureRandomBytes(32)),
+      allowCredentials: [{ type: "public-key", id: credentialId }],
+      userVerification: "required",
+      timeout: 60_000,
+      extensions: { prf: { eval: { first: asArrayBuffer(prfInput) } } },
+    },
+  })) as PublicKeyCredential | null;
+  const output = assertion ? prfOutput(assertion) : null;
+  if (!output) throw new Error("이 Passkey는 WebAuthn PRF를 지원하지 않습니다.");
+  return output;
 }
 
 export async function createPasskeyMailbox(walletAddress: string) {
@@ -43,10 +58,11 @@ export async function createPasskeyMailbox(walletAddress: string) {
     },
   })) as PublicKeyCredential | null;
   if (!credential) throw new Error("Passkey 생성이 취소되었습니다.");
+  const output = prfOutput(credential) ?? await authenticatePrf(credential.rawId, prfInput);
   const envelope = await wrapMailboxSeedGpk1(
     seed,
     new Uint8Array(credential.rawId),
-    prfOutput(credential),
+    output,
     (() => {
       let saltPending = true;
       return (length: number) => {
@@ -73,7 +89,9 @@ export async function openPasskeyMailbox(envelope: Uint8Array) {
     },
   })) as PublicKeyCredential | null;
   if (!credential) throw new Error("Passkey 확인이 취소되었습니다.");
-  const seed = await unwrapMailboxSeedGpk1(envelope, prfOutput(credential));
+  const output = prfOutput(credential);
+  if (!output) throw new Error("이 Passkey에서 PRF 출력을 얻지 못했습니다.");
+  const seed = await unwrapMailboxSeedGpk1(envelope, output);
   try {
     return await mailboxKeyPairFromSeed(seed);
   } finally {
