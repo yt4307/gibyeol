@@ -15,6 +15,10 @@ docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps backend \
   composer install --no-interaction --prefer-dist --no-progress
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps backend composer validate --strict
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \
-  -e APP_ENV=test -e APP_DEBUG=0 backend composer test
+  -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
+  backend php bin/console cache:clear --env=test
+docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \
+  -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
+  backend composer test
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps contracts fmt --check
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps contracts test

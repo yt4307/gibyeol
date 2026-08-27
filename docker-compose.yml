@@ -39,6 +39,7 @@ services:
       DATABASE_URL: mysql://${MYSQL_USER:-gibyeol}:${MYSQL_PASSWORD:-gibyeol_password}@db:3306/${MYSQL_DATABASE:-gibyeol}?serverVersion=8.4.0&charset=utf8mb4
       CHAIN_ID: ${CHAIN_ID:-31337}
       BASE_RPC_URL: ${BASE_RPC_URL:-http://anvil:8545}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
       PACKAGE_STORAGE_PATH: /var/lib/gibyeol/packages
       DEFAULT_URI: ${API_ORIGIN:-http://localhost:8080}
       LOCK_DSN: flock

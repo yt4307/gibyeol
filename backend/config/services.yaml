@@ -4,6 +4,8 @@ services:
   _defaults:
     autowire: true
     autoconfigure: true
+    bind:
+      $webOrigin: '%env(WEB_ORIGIN)%'
 
   App\:
     resource: '../src/'
