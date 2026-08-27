@@ -2,18 +2,18 @@
 
 import styled from "@emotion/styled";
 import type { FormEvent } from "react";
-import type { SendDraft } from "../data/send-draft";
+import { sendStageLabel, type SendDraft } from "../data/send-draft";
 
 export type ComposeLetterProps = { draft: SendDraft; busy?: boolean; error?: string | null; onChange: (value: Partial<Pick<SendDraft, "recipient" | "message">>) => void; onSubmit: (files: readonly File[]) => void; onReset: () => void };
 
 export function ComposeLetter({ draft, busy, error, onChange, onSubmit, onReset }: ComposeLetterProps) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSubmit(Array.from(new FormData(event.currentTarget).getAll("media")).filter((value): value is File => value instanceof File && value.size > 0)); };
   return <Form onSubmit={submit}>
-    <Header><div><Label>LETTER #{draft.letterId.slice(2, 10)}</Label><h2>크리스마스에 닿을 마음</h2></div><Stage>{draft.stage}</Stage></Header>
+    <Header><div><Label>LETTER #{draft.letterId.slice(2, 10)}</Label><h2>크리스마스에 닿을 마음</h2></div><Stage>{sendStageLabel[draft.stage]}</Stage></Header>
     <Field><span>받는 지갑 주소</span><input value={draft.recipient} disabled={draft.stage !== "DRAFT"} onChange={(event) => onChange({ recipient: event.target.value })} placeholder="0x…" /></Field>
     <Field><span>편지</span><textarea value={draft.message} disabled={draft.stage !== "DRAFT"} onChange={(event) => onChange({ message: event.target.value })} rows={8} maxLength={48000} placeholder="그날의 마음을 적어 주세요." /></Field>
-    <Field><span>사진 (선택, WebP/JPEG)</span><input name="media" type="file" accept="image/webp,image/jpeg" multiple disabled={draft.stage !== "DRAFT"} /></Field>
-    <Actions><Submit disabled={busy || draft.stage === "SEALED"}>{busy ? "안전하게 봉인 중…" : draft.stage === "DRAFT" ? "편지 봉인하기" : draft.stage === "SEALED" ? "봉인 완료" : "이어하기"}</Submit><Reset type="button" onClick={onReset}>새 편지</Reset></Actions>
+    <Field><span>사진·타임랩스 (선택)</span><input name="media" type="file" accept="image/webp,image/jpeg,video/webm,video/mp4" multiple disabled={draft.stage !== "DRAFT"} /></Field>
+    <Actions><Submit disabled={busy || draft.stage === "SEALED"}>{busy ? sendStageLabel[draft.stage] : draft.stage === "DRAFT" ? "편지 봉인하기" : draft.stage === "SEALED" ? "접수 완료" : "이어하기"}</Submit><Reset type="button" onClick={onReset}>새 편지</Reset></Actions>
     {error && <ErrorText role="alert">{error}</ErrorText>}
     {draft.transactionHash && <Receipt>거래: {draft.transactionHash}</Receipt>}
   </Form>;

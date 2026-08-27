@@ -14,8 +14,8 @@ import {
   type MediaInput,
 } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
-import { isAddress, toHex } from "viem";
-import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient, walletClient } from "@features/blockchain/data/config";
+import { isAddress, parseAbiItem, toHex } from "viem";
+import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@features/blockchain/data/config";
 import { createQuicknetTlock } from "@features/blockchain/data/quicknet-tlock";
 import { draftStorageKey, emptyDraft, type SendDraft } from "../data/send-draft";
 
@@ -25,6 +25,7 @@ const asArrayBuffer = (bytes: Uint8Array) => {
   new Uint8Array(output).set(bytes);
   return output;
 };
+const letterEvent = parseAbiItem("event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)");
 
 export function useSendLetter(sender?: `0x${string}`) {
   const [draft, setDraftState] = useState<SendDraft | null>(null);
@@ -35,7 +36,13 @@ export function useSendLetter(sender?: `0x${string}`) {
     if (!sender) return;
     queueMicrotask(() => {
       const saved = localStorage.getItem(draftStorageKey(sender));
-      try { setDraftState(saved ? JSON.parse(saved) as SendDraft : emptyDraft(newLetterId())); }
+      try {
+        const parsed = saved ? JSON.parse(saved) as Omit<SendDraft, "stage"> & { stage: string } : emptyDraft(newLetterId());
+        const stage = parsed.stage === "PACKED" ? "UPLOADING_PACKAGE"
+          : parsed.stage === "UPLOADED" ? "ENCRYPTING_KEY"
+          : parsed.stage === "PACKING" ? "DRAFT" : parsed.stage;
+        setDraftState({ ...parsed, stage } as SendDraft);
+      }
       catch { setDraftState(emptyDraft(newLetterId())); }
     });
   }, [sender]);
@@ -59,51 +66,122 @@ export function useSendLetter(sender?: `0x${string}`) {
     setBusy(true); setError(null);
     try {
       let working = draft;
-      if (working.stage === "DRAFT") {
+      if (working.stage === "DRAFT" || working.stage === "PACKING") {
         const recipient = working.recipient.toLowerCase() as `0x${string}`;
         const recipientKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
         if (recipientKeyId < 1) throw new Error("받는 분의 메일박스가 아직 없습니다.");
-        const recipientPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, recipientKeyId] });
+        working = persist({ ...working, stage: "PACKING", recipient, recipientKeyId });
         const letterKey = secureRandomBytes(32);
         const context = encodeLetterContext({ chainId, contractAddress, letterId: working.letterId, sender, recipient });
         const media: MediaInput[] = await Promise.all(files.map(async (file) => {
-          if (!['image/webp', 'image/jpeg'].includes(file.type)) throw new Error("이미지는 WebP 또는 JPEG만 지원합니다.");
-          return { type: MEDIA_TYPE.IMAGE, codec: file.type === 'image/webp' ? MEDIA_CODEC.WEBP : MEDIA_CODEC.JPEG, bytes: new Uint8Array(await file.arrayBuffer()) };
+          const mapping = file.type === "image/webp" ? [MEDIA_TYPE.IMAGE, MEDIA_CODEC.WEBP] as const
+            : file.type === "image/jpeg" ? [MEDIA_TYPE.IMAGE, MEDIA_CODEC.JPEG] as const
+            : file.type === "video/webm" ? [MEDIA_TYPE.TIMELAPSE, MEDIA_CODEC.WEBM] as const
+            : file.type === "video/mp4" ? [MEDIA_TYPE.TIMELAPSE, MEDIA_CODEC.MP4] as const : null;
+          if (!mapping) throw new Error("미디어는 WebP, JPEG, WebM 또는 MP4만 지원합니다.");
+          return { type: mapping[0], codec: mapping[1], bytes: new Uint8Array(await file.arrayBuffer()) };
         }));
         const archive = await packGbyl(media, letterKey, context);
+        const encryptedText = await encryptTextGtx1(working.message, letterKey, context);
         working = persist({
           ...working,
-          stage: "PACKED",
+          stage: "UPLOADING_PACKAGE",
           recipient: recipient,
           recipientKeyId,
           letterKeyHex: bytesToHex(letterKey),
-          encryptedTextHex: toHex(await encryptTextGtx1(working.message, letterKey, context)),
-          sealedKeyHex: toHex(await wrapLetterKeyForRecipient(letterKey, hexToBytes(recipientPublicKey, 32), createQuicknetTlock())),
+          encryptedTextHex: toHex(encryptedText),
           archiveHex: bytesToHex(archive),
           archiveSha256: toHex(await sha256(archive)),
         });
       }
-      if (working.stage === "PACKED") {
+      if (working.stage === "UPLOADING_PACKAGE") {
         const archive = hexToBytes(working.archiveHex!);
         const response = await fetch(`${apiBaseUrl}/packages/${working.archiveSha256!.slice(2)}`, {
           method: "PUT", credentials: "include", headers: { "Content-Type": "application/vnd.gibyeol.package" }, body: asArrayBuffer(archive),
         });
         if (!response.ok && response.status !== 204) throw new Error("암호화 패키지를 보관하지 못했습니다.");
-        working = persist({ ...working, stage: "UPLOADED" });
+        working = persist({ ...working, stage: "ENCRYPTING_KEY" });
       }
-      if (working.stage === "UPLOADED") {
+      if (working.stage === "ENCRYPTING_KEY") {
         const recipient = working.recipient as `0x${string}`;
         const latestKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
-        if (latestKeyId !== working.recipientKeyId) {
-          const latestPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, latestKeyId] });
-          working = persist({ ...working, recipientKeyId: latestKeyId, sealedKeyHex: toHex(await wrapLetterKeyForRecipient(hexToBytes(working.letterKeyHex!, 32), hexToBytes(latestPublicKey, 32), createQuicknetTlock())) });
+        const latestPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, latestKeyId] });
+        working = persist({ ...working, stage: "WAITING_TRANSACTION", recipientKeyId: latestKeyId, sealedKeyHex: toHex(await wrapLetterKeyForRecipient(hexToBytes(working.letterKeyHex!, 32), hexToBytes(latestPublicKey, 32), createQuicknetTlock())) });
+      }
+      if (working.stage === "WAITING_TRANSACTION") {
+        const recipient = working.recipient as `0x${string}`;
+        const recoverExisting = async () => {
+          const sealed = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "sealedLetters", args: [working.letterId] });
+          if (!sealed) return null;
+          const logs = await publicClient.getLogs({ address: contractAddress, event: letterEvent, args: { letterId: working.letterId }, fromBlock: deploymentBlock, toBlock: "latest" });
+          return logs.at(-1)?.transactionHash ?? working.transactionHash ?? null;
+        };
+        const alreadySealed = await recoverExisting();
+        if (alreadySealed) {
+          working = persist({ ...working, stage: "SEALED", transactionHash: alreadySealed, message: "", letterKeyHex: undefined });
+          return working;
+        }
+        if (working.transactionHash) {
+          const pendingHash = working.transactionHash;
+          try {
+            await publicClient.waitForTransactionReceipt({ hash: pendingHash, timeout: 30_000 });
+            working = persist({ ...working, stage: "SEALED", message: "", letterKeyHex: undefined });
+            return working;
+          } catch {
+            if (await recoverExisting()) {
+              working = persist({ ...working, stage: "SEALED", message: "", letterKeyHex: undefined });
+              return working;
+            }
+            try {
+              await publicClient.getTransaction({ hash: pendingHash });
+              throw new Error("기존 거래가 아직 대기 중입니다. 같은 편지 ID로 확인을 계속합니다.");
+            } catch (cause) {
+              if (cause instanceof Error && cause.message.startsWith("기존 거래")) throw cause;
+              working = persist({ ...working, transactionHash: undefined });
+            }
+          }
         }
         const client = walletClient();
-        const hash = await client.writeContract({ account: sender, address: contractAddress, abi: contractAbi, functionName: "sealLetter", args: [working.letterId, recipient, working.recipientKeyId!, working.encryptedTextHex!, working.sealedKeyHex!, working.archiveSha256!] });
-        try { await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 }); }
-        catch {
-          const sealed = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "sealedLetters", args: [working.letterId] });
-          if (!sealed) throw new Error("거래 확인이 지연되고 있습니다. 같은 편지 ID로 다시 확인할 수 있어요.");
+        let hash: `0x${string}` | null = null;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const latestKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
+          if (latestKeyId !== working.recipientKeyId) {
+            const latestPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, latestKeyId] });
+            working = persist({ ...working, recipientKeyId: latestKeyId, sealedKeyHex: toHex(await wrapLetterKeyForRecipient(hexToBytes(working.letterKeyHex!, 32), hexToBytes(latestPublicKey, 32), createQuicknetTlock())) });
+          }
+          try {
+            hash = await client.writeContract({ account: sender, address: contractAddress, abi: contractAbi, functionName: "sealLetter", args: [working.letterId, recipient, working.recipientKeyId!, working.encryptedTextHex!, working.sealedKeyHex!, working.archiveSha256!] });
+            working = persist({ ...working, transactionHash: hash });
+            break;
+          } catch (cause) {
+            const recovered = await recoverExisting();
+            if (recovered) { hash = recovered; break; }
+            const rotatedKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
+            if (attempt === 0 && rotatedKeyId !== working.recipientKeyId) continue;
+            throw cause;
+          }
+        }
+        if (!hash) throw new Error("편지 거래를 전송하지 못했습니다.");
+        try {
+          let receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+          if (receipt.status === "reverted") {
+            const recovered = await recoverExisting();
+            if (!recovered) {
+              const rotatedKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
+              if (rotatedKeyId === working.recipientKeyId) throw new Error("편지 거래가 revert되었습니다.");
+              const rotatedPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, rotatedKeyId] });
+              working = persist({ ...working, recipientKeyId: rotatedKeyId, sealedKeyHex: toHex(await wrapLetterKeyForRecipient(hexToBytes(working.letterKeyHex!, 32), hexToBytes(rotatedPublicKey, 32), createQuicknetTlock())), transactionHash: undefined });
+              hash = await client.writeContract({ account: sender, address: contractAddress, abi: contractAbi, functionName: "sealLetter", args: [working.letterId, recipient, rotatedKeyId, working.encryptedTextHex!, working.sealedKeyHex!, working.archiveSha256!] });
+              working = persist({ ...working, transactionHash: hash });
+              receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+              if (receipt.status !== "success") throw new Error("키 재포장 후 거래도 revert되었습니다.");
+            }
+          }
+        } catch (cause) {
+          if (!await recoverExisting()) {
+            if (cause instanceof Error && cause.message.includes("revert")) throw cause;
+            throw new Error("거래 확인이 지연되고 있습니다. 같은 편지 ID로 다시 확인할 수 있어요.");
+          }
         }
         working = persist({ ...working, stage: "SEALED", transactionHash: hash, message: "", letterKeyHex: undefined });
       }
