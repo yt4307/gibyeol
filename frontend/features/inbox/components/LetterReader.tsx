@@ -1,0 +1,13 @@
+"use client";
+
+import styled from "@emotion/styled";
+import type { OpenedLetter } from "../data/inbox";
+
+/* eslint-disable @next/next/no-img-element -- decrypted blob URLs cannot use the static Pages image optimizer */
+export function LetterReader({ letter }: { letter: OpenedLetter }) {
+  return <Paper><Label>DECRYPTED LETTER</Label><Message>{letter.message}</Message>{letter.mediaUrls.length > 0 && <Media>{letter.mediaUrls.map((url) => <img key={url} src={url} alt="기별에 첨부된 사진" />)}</Media>}</Paper>;
+}
+const Paper = styled.article`padding:clamp(var(--space-6),6vw,var(--space-12));background:#fffdf8;border:1px solid var(--color-neutral-300);border-radius:4px;box-shadow:0 20px 50px rgb(53 61 70 / 12%);`;
+const Label = styled.p`font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--color-brand-800);`;
+const Message = styled.p`margin-top:var(--space-8);white-space:pre-wrap;font-size:clamp(1.2rem,3vw,1.7rem);font-weight:300;line-height:1.8;`;
+const Media = styled.div`display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3);margin-top:var(--space-8);img{width:100%;height:auto;border-radius:8px;}`;

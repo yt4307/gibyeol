@@ -47,6 +47,16 @@ export async function createPasskeyMailbox(walletAddress: string) {
     seed,
     new Uint8Array(credential.rawId),
     prfOutput(credential),
+    (() => {
+      let saltPending = true;
+      return (length: number) => {
+        if (saltPending && length === 32) {
+          saltPending = false;
+          return new Uint8Array(prfInput);
+        }
+        return secureRandomBytes(length);
+      };
+    })(),
   );
   return { seed, envelope, keyPair: await mailboxKeyPairFromSeed(seed) };
 }

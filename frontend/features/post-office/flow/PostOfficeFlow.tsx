@@ -1,7 +1,9 @@
 "use client";
 
 import styled from "@emotion/styled";
+import { useState } from "react";
 import { BrandWordmark } from "@features/home/components/BrandWordmark";
+import { InboxFlow } from "@features/inbox/flow/InboxFlow";
 import { MailboxOnboarding } from "@features/mailbox/components/MailboxOnboarding";
 import { useMailboxOnboarding } from "@features/mailbox/hooks/use-mailbox-onboarding";
 import { SendFlow } from "@features/send/flow/SendFlow";
@@ -9,6 +11,7 @@ import { WalletPanel } from "@features/wallet/components/WalletPanel";
 import { useWalletSession } from "@features/wallet/hooks/use-wallet-session";
 
 export function PostOfficeFlow() {
+  const [view, setView] = useState<"send" | "inbox">("send");
   const wallet = useWalletSession();
   const mailbox = useMailboxOnboarding(wallet.session?.address);
   return <Shell>
@@ -17,7 +20,7 @@ export function PostOfficeFlow() {
     <Workspace>
       <WalletPanel address={wallet.session?.address} busy={wallet.busy} error={wallet.error} onConnect={() => { void wallet.connect(); }} />
       {wallet.session && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
-      {mailbox.keyId && mailbox.keyId > 0 ? <SendFlow address={wallet.session?.address} /> : wallet.session && <Hint>편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요.</Hint>}
+      {mailbox.keyId && mailbox.keyId > 0 && wallet.session ? <><Tabs aria-label="우체국 메뉴"><button className={view === "send" ? "active" : ""} onClick={() => setView("send")}>편지 보내기</button><button className={view === "inbox" ? "active" : ""} onClick={() => setView("inbox")}>받은 기별</button></Tabs>{view === "send" ? <SendFlow address={wallet.session.address} /> : <InboxFlow address={wallet.session.address} />}</> : wallet.session && <Hint>편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요.</Hint>}
     </Workspace>
   </Shell>;
 }
@@ -27,4 +30,5 @@ const DateMark = styled.span`font-size:11px;font-weight:700;letter-spacing:.14em
 const Intro = styled.section`width:min(100%,1100px);margin:clamp(70px,12vh,130px) auto var(--space-12);h1{margin-top:var(--space-4);font-size:clamp(2.8rem,7vw,6rem);font-weight:300;line-height:1;letter-spacing:-.07em;}p{max-width:560px;margin-top:var(--space-6);color:var(--color-text-muted);font-size:var(--font-size-300);line-height:1.7;}`;
 const Eyebrow = styled.p`font-size:12px!important;font-weight:700;letter-spacing:.14em;color:var(--color-brand-800)!important;`;
 const Workspace = styled.div`display:grid;gap:var(--space-5);width:min(100%,900px);margin:0 auto;`;
+const Tabs = styled.nav`display:flex;gap:var(--space-2);padding:4px;background:var(--color-neutral-200);border-radius:999px;button{flex:1;min-height:42px;border:0;border-radius:999px;background:transparent;cursor:pointer;&.active{background:white;box-shadow:0 2px 8px rgb(17 17 15 / 8%);font-weight:700;}}`;
 const Hint = styled.p`padding:var(--space-8);text-align:center;color:var(--color-text-muted);border:1px dashed var(--color-neutral-500);border-radius:16px;`;
