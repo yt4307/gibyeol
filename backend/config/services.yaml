@@ -10,6 +10,16 @@ services:
       $chainId: '%env(int:CHAIN_ID)%'
       $sessionCookieName: '%env(SESSION_COOKIE_NAME)%'
       $sessionSameSite: '%env(SESSION_SAME_SITE)%'
+      $emailEncryptionKey: '%env(EMAIL_ENCRYPTION_KEY)%'
+      $emailLookupKey: '%env(EMAIL_LOOKUP_KEY)%'
+      $otpHmacKey: '%env(OTP_HMAC_KEY)%'
+      $emailProvider: '%env(EMAIL_PROVIDER)%'
+      $resendApiKey: '%env(RESEND_API_KEY)%'
+      $emailFrom: '%env(EMAIL_FROM)%'
+      $recoveryPrivateKey: '%env(RECOVERY_PRIVATE_KEY)%'
+      $rpcUrl: '%env(BASE_RPC_URL)%'
+      $contractAddress: '%env(GIBYEOL_CONTRACT_ADDRESS)%'
+      $unlockAt: '%env(int:UNLOCK_AT)%'
 
   App\:
     resource: '../src/'
@@ -17,3 +27,5 @@ services:
       - '../src/Kernel.php'
 
   App\Auth\SiweVerifier: '@App\Auth\ZbkmSiweVerifier'
+  App\Email\EmailSender: '@App\Email\ConfiguredEmailSender'
+  App\Recovery\MailboxKeyVerifier: '@App\Recovery\RpcMailboxKeyVerifier'
