@@ -5,6 +5,7 @@
   "scripts": {
     "dev:frontend": "pnpm --filter @gibyeol/frontend dev",
     "build:frontend": "pnpm --filter @gibyeol/frontend build",
+    "package:dothome": "pnpm --filter @gibyeol/frontend package:dothome",
     "lint:frontend": "pnpm --filter @gibyeol/frontend lint",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test"

@@ -25,6 +25,11 @@ main {
   background: rgb(20 19 17 / 82%);
 }
 
+.description {
+  line-height: 1.7;
+  color: #d8d1c5;
+}
+
 .eyebrow {
   color: #d1a75d;
   font-size: 0.75rem;
@@ -38,13 +43,13 @@ h1 {
   letter-spacing: -0.06em;
 }
 
-dl {
+.status-list {
   display: grid;
   gap: 12px;
   margin: 36px 0 0;
 }
 
-dl div {
+.status-row {
   display: flex;
   justify-content: space-between;
   gap: 24px;
@@ -52,11 +57,19 @@ dl div {
   border-top: 1px solid #3e3a33;
 }
 
-dt {
+.status-label {
   color: #aaa295;
 }
 
-dd {
+.status-value {
   margin: 0;
   text-align: right;
+}
+
+.status-value[data-state="success"] {
+  color: #9ed39e;
+}
+
+.status-value[data-state="error"] {
+  color: #e8a39d;
 }

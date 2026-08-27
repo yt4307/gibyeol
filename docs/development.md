@@ -22,7 +22,7 @@ docker compose ps
 
 Frontend는 <http://localhost:3000>, backend health endpoint는 <http://localhost:8080/api/v1/health>, Anvil JSON-RPC는 <http://localhost:8545>다.
 
-현재 작업 환경에는 Docker가 설치되어 있지 않아 최초 실행 시 아래 lockfile 생성 절차도 함께 수행해야 한다.
+의존성을 갱신하거나 lockfile을 다시 만들 때는 아래 절차를 사용한다.
 
 ```powershell
 # pnpm workspace lockfile 생성/갱신
@@ -48,6 +48,11 @@ docker compose logs -f frontend backend
 docker compose exec frontend pnpm typecheck
 docker compose exec frontend pnpm test
 docker compose exec frontend pnpm build:frontend
+
+# 닷홈 스모크 산출물 생성과 Apache/PHP 실행
+docker compose run --rm --no-deps frontend pnpm build:frontend
+docker compose run --rm --no-deps frontend pnpm package:dothome
+docker compose --profile dothome up -d dothome-smoke
 
 # backend
 docker compose exec backend php bin/console about

@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Providers } from "./providers";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "기별",
-  description: "2026년 크리스마스에 도착하는 암호 편지",
+  title: "기별 · 호스팅 확인",
+  description: "기별 닷홈 정적 배포 확인 페이지",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="ko">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

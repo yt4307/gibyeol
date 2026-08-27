@@ -18,6 +18,7 @@
 | [implementation-plan.md](implementation-plan.md) | 단계별 개발 순서와 완료 조건 |
 | [deployment.md](deployment.md) | 환경, 비밀값, 운영 체크리스트 |
 | [development.md](development.md) | 모노레포 로컬 개발 환경과 명령어 |
+| [dothome-smoke.md](dothome-smoke.md) | 최소 정적 export의 Apache/PHP 배포 검증 절차 |
 
 ## Freeze 전에 반드시 닫을 항목
 

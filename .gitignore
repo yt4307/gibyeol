@@ -16,5 +16,6 @@ contracts/cache/
 contracts/out/
 contracts/broadcast/
 coverage/
+dist/
 *.log
 *.tsbuildinfo

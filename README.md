@@ -10,9 +10,21 @@ gibyeol/
 ├─ backend/              Symfony 7.4 LTS API/CLI
 ├─ contracts/            Foundry Solidity project
 ├─ packages/protocol/    browser protocol implementation
-├─ infra/docker/         container configuration
+├─ infra/                container and hosting files
 └─ docs/                 v1 Freeze Candidate documents
 ```
+
+## 현재 목표: 닷홈 스모크 배포
+
+전체 기능 구현 전에 Next.js 정적 export가 닷홈의 Apache/PHP 환경에서 정상 동작하는지 먼저 검증합니다.
+
+```powershell
+docker compose run --rm --no-deps frontend pnpm build:frontend
+docker compose run --rm --no-deps frontend pnpm package:dothome
+docker compose --profile dothome up -d dothome-smoke
+```
+
+<http://localhost:8090>에서 정적 페이지, React hydration, PHP health check를 확인할 수 있습니다. 실제 FTP 업로드 대상은 `dist/dothome/public_html/`의 **내용물**입니다. 자세한 절차는 [닷홈 스모크 배포 문서](docs/dothome-smoke.md)를 따릅니다.
 
 ## 시작하기
 

@@ -4,6 +4,15 @@
 
 각 단계는 다음 단계가 기대는 안정된 경계를 만든다. UI는 protocol과 chain/storage PoC가 성공한 뒤 시작한다. 라이브러리는 adapter 뒤에 두고 wire format golden vector를 기준으로 교체 가능하게 한다.
 
+## 0. 닷홈 호스팅 스모크 테스트 (현재 최우선)
+
+- Next.js 정적 export 생성
+- 정적 파일과 최소 PHP health endpoint를 하나의 FTP 배포 디렉터리로 조립
+- PHP 8.4 + Apache 컨테이너에서 HTML/CSS, React hydration, PHP 실행 확인
+- 동일한 파일을 닷홈에 업로드하여 실제 도메인과 HTTPS에서 확인
+
+이 단계에는 Symfony, MySQL, 지갑, 암호화, 컨트랙트 기능을 포함하지 않는다. 완료 조건은 실제 닷홈 주소에서 `/`가 열리고 화면의 PHP 상태가 `정상`으로 표시되는 것이다.
+
 ## 1. Protocol package
 
 목표 경로: `packages/protocol`
@@ -80,12 +89,13 @@
 
 ## 권장 초기 backlog
 
-1. repository workspace/package manager와 CI 결정
-2. protocol canonical byte utilities
-3. GTX1/GBYL golden vector tests
-4. tlock quicknet spike
-5. contract scaffold/test
-6. Sepolia one-minute E2E script
+1. 닷홈 static export + PHP 스모크 배포
+2. repository CI 결정
+3. protocol canonical byte utilities
+4. GTX1/GBYL golden vector tests
+5. tlock quicknet spike
+6. contract scaffold/test
+7. Sepolia one-minute E2E script
 
 ## 변경 관리
 
