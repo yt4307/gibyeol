@@ -11,7 +11,24 @@
 | drand quicknet | Christmas time-lock | 공개 randomness/time gate |
 | Resend | 인증 및 도착 안내 메일 | 전송 provider |
 
-Web은 static export 가능한 Next.js 애플리케이션이다. Base RPC URL은 환경변수로 주입하고 production에서 공식 rate-limited public RPC에 의존하지 않는다.
+Web은 GitHub Pages에 배포하는 static export Next.js 애플리케이션이다. PHP/API는 Pages와 합쳐서 배포하지 않으며 별도 HTTPS origin에서 제공한다. Base RPC URL은 build 환경변수로 주입하고 production에서 공식 rate-limited public RPC에 의존하지 않는다.
+
+## 배포 토폴로지와 origin
+
+```text
+GitHub Pages (WEB_ORIGIN)
+  ├─ static HTML/CSS/JS
+  ├─ Base RPC 직접 조회
+  ├─ drand 직접 조회
+  └─ HTTPS + CORS ─────────────┐
+                               ▼
+                         PHP API (API_ORIGIN)
+                           ├─ MySQL
+                           ├─ GBYL storage
+                           └─ Resend
+```
+
+`WEB_ORIGIN`과 `API_ORIGIN`은 서로 다른 origin임을 기본값으로 본다. CORS, Origin 검증, SIWE domain/URI, session cookie는 두 값을 하나의 배포 manifest에서 파생해야 한다. Production에서는 가능하면 두 origin을 같은 registrable domain의 HTTPS subdomain으로 구성한다. 불가능하면 cross-site cookie가 실제 지원 브라우저에서 동작하는지 검증하거나 session 전달 방식을 별도 ADR로 확정하기 전까지 production 배포를 진행하지 않는다.
 
 ## 저장소 목표 구조
 

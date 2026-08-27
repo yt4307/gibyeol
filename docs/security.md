@@ -50,6 +50,8 @@
 - nonce는 한 번만 소비하고 signature malleability/contract wallet 지원 정책을 라이브러리 테스트로 확정한다.
 - session fixation 방지를 위해 로그인 성공 때 새 token을 발급한다.
 - state-changing API는 Origin 검증을 추가한다. SameSite만으로 CSRF 방어를 끝내지 않는다.
+- GitHub Pages `WEB_ORIGIN`과 API `API_ORIGIN`은 정확한 allowlist로 고정하고 credentialed CORS에 wildcard를 사용하지 않는다.
+- cross-site cookie에 의존하는 배포는 third-party cookie 제한을 포함한 실제 브라우저 검증 없이는 production에 사용하지 않는다.
 - auth/email/recovery endpoint에 wallet, email hash, IP 기준 rate limit과 audit event를 둔다.
 - OTP 응답은 email 존재 여부를 노출하지 않는다.
 

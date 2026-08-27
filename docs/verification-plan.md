@@ -58,6 +58,17 @@ UI 구현보다 protocol conformance와 end-to-end PoC를 먼저 통과시킨다
 - recovery는 개봉 전 거부되고 개봉 후 SIWE+OTP 없이는 거부된다.
 - webhook signature와 duplicate event 멱등성을 검증한다.
 
+## GitHub Pages와 cross-origin tests
+
+- 선택한 root/subpath에서 HTML, `_next` asset, public asset, 직접 route 접근과 새로고침을 검증한다.
+- Pages artifact가 PHP, server secret, private source map을 포함하지 않는지 검사한다.
+- 실제 `WEB_ORIGIN`에서 API GET/HEAD/PUT/POST와 OPTIONS preflight를 검증한다.
+- credentialed response가 wildcard origin을 사용하지 않는지 검사한다.
+- 잘못된 Origin과 `Origin: null`의 state-changing request를 거부한다.
+- SIWE domain/URI가 API host가 아닌 배포 manifest의 `WEB_ORIGIN`과 일치하는지 검사한다.
+- session 발급과 후속 인증 요청을 Chrome, Safari, 지원 모바일 브라우저에서 검증한다.
+- custom domain, certificate, HTTPS redirect, mixed content를 배포 smoke test에 포함한다.
+
 ## 운영 job tests
 
 - 71:59 package는 삭제하지 않고 72시간 이후 미참조 package만 삭제한다.
@@ -88,3 +99,4 @@ Base Sepolia에서 다음을 자동 또는 재현 가능한 스크립트로 수�
 - dependency lockfile 변경 review
 - secret scan
 - build artifacts 재생성 가능성 검사
+- GitHub Pages build/deploy와 Pages → API cross-origin smoke

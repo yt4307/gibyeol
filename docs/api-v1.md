@@ -8,6 +8,17 @@ Base path는 `/api/v1`이다. JSON 응답은 `Content-Type: application/json; ch
 
 `code`는 안정적인 machine-readable 값이고 `message`는 변경될 수 있다. 요청 ID를 생성해 `X-Request-Id`로 반환하되 비밀값과 raw 암호 payload는 로그에 남기지 않는다.
 
+## Browser origin과 CORS
+
+브라우저는 GitHub Pages의 `WEB_ORIGIN`에서 별도 `API_ORIGIN`으로 요청한다. API는 다음 계약을 지킨다.
+
+- `Access-Control-Allow-Origin`은 설정된 정확한 `WEB_ORIGIN` 하나만 반환하며 `*`를 사용하지 않는다.
+- session을 사용하는 frontend 요청은 `credentials: "include"`를 사용하고 API는 `Access-Control-Allow-Credentials: true`를 반환한다.
+- OPTIONS preflight는 실제 endpoint와 동일한 origin 정책을 적용하고 필요한 method 및 `Content-Type`을 허용한다.
+- state-changing endpoint는 `Origin`이 정확히 `WEB_ORIGIN`인지 검사한다. `Origin: null`은 거부한다.
+- 공개 package GET/HEAD에도 `WEB_ORIGIN`의 cross-origin read를 허용한다.
+- staging과 production origin을 한 프로세스에서 동시에 허용하지 않는다.
+
 ## Package
 
 ### `PUT /packages/{sha256}`
@@ -70,7 +81,7 @@ GET과 같은 status/header를 body 없이 반환한다. 업로드 전 존재 �
 {"walletAddress":"0x...","chainId":84532}
 ```
 
-서버는 EIP-55 여부와 무관하게 유효한 20-byte 주소인지 검사하고 내부 저장 시 lowercase로 정규화한다. 허용 chain은 환경별로 하나만 둔다. nonce는 CSPRNG로 생성하며 짧은 만료시간과 요청 domain/URI를 가진 EIP-4361 message를 반환한다.
+서버는 EIP-55 여부와 무관하게 유효한 20-byte 주소인지 검사하고 내부 저장 시 lowercase로 정규화한다. 허용 chain은 환경별로 하나만 둔다. nonce는 CSPRNG로 생성하며 짧은 만료시간을 가진 EIP-4361 message를 반환한다. SIWE domain과 URI는 API 요청 URL에서 추론하지 않고 배포 manifest의 `WEB_ORIGIN`에서 만든다.
 
 ```json
 {"message":"...","nonce":"...","expiresAt":"2026-08-23T12:05:00Z"}
@@ -87,6 +98,8 @@ GET과 같은 status/header를 body 없이 반환한다. 업로드 전 존재 �
 ```http
 Set-Cookie: gibyeol_session=...; Path=/; Secure; HttpOnly; SameSite=Lax
 ```
+
+위 cookie는 `WEB_ORIGIN`과 `API_ORIGIN`이 같은 site인 production 목표 구성의 기본값이다. 두 origin이 cross-site라면 `SameSite=None; Secure`와 credentialed CORS가 필요하지만, 브라우저의 third-party cookie 제한 때문에 이것만으로 지원을 보장하지 않는다. cross-site 구성을 사용할 경우 대상 브라우저 E2E를 통과하고 선택한 session 정책을 ADR로 기록해야 한다.
 
 ### `POST /auth/logout`
 

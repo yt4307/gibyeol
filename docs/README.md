@@ -1,7 +1,7 @@
 # 기별 v1 문서
 
 상태: **Freeze Candidate (FC)**
-기준일: 2026-08-23
+기준일: 2026-08-27
 
 이 디렉터리는 기별 v1 구현의 기준 문서다. `protocol-v1.md`에서 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다.
 
@@ -18,7 +18,8 @@
 | [implementation-plan.md](implementation-plan.md) | 단계별 개발 순서와 완료 조건 |
 | [deployment.md](deployment.md) | 환경, 비밀값, 운영 체크리스트 |
 | [development.md](development.md) | 모노레포 로컬 개발 환경과 명령어 |
-| [dothome-smoke.md](dothome-smoke.md) | 최소 정적 export의 Apache/PHP 배포 검증 절차 |
+| [github-pages.md](github-pages.md) | GitHub Pages 정적 프론트 배포와 검증 절차 |
+| [dothome-backend.md](dothome-backend.md) | 닷홈 PHP/API·package 저장소 배포 경계 |
 
 ## Freeze 전에 반드시 닫을 항목
 
@@ -34,5 +35,8 @@
    - media index = 0부터 시작하는 uint16 big-endian
    - GPK1 seed encryption AAD = envelope prefix
    - media가 없는 편지도 8-byte empty GBYL을 만들고 업로드
+7. production `WEB_ORIGIN`과 `API_ORIGIN`을 확정하고, 같은 site를 쓸 수 없는 경우 cross-site session 방식을 실제 대상 브라우저에서 통과시킨다.
+8. GitHub Pages가 custom domain root인지 repository subpath인지 확정하고 Pages build의 `basePath`를 고정한다.
+9. 닷홈 저장 용량과 scheduler/CLI 제약이 정상 package 보존 및 Christmas Postman 요구사항을 만족하는지 검증한다.
 
 이 항목들은 구현/배포 파라미터이며 문서에 정의된 암호화 순서, 온체인 인터페이스, 바이너리 magic/version, 해시 알고리즘을 바꾸지 않는다.

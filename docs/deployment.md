@@ -12,6 +12,8 @@
 
 RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리한다. production에서 Base 공식 public RPC를 주 provider로 사용하지 않는다.
 
+프론트엔드는 GitHub Pages, PHP/API는 별도 닷홈 HTTPS origin에 배포하는 것을 현재 목표로 한다. 각 환경의 배포 manifest에는 최소 `WEB_ORIGIN`, `API_ORIGIN`, Pages base path, chain ID, contract address, drand chain/round, frontend/backend commit SHA를 함께 기록한다.
+
 ## 설정 목록
 
 아래 이름은 구현 시 확정할 권장 명칭이다.
@@ -19,7 +21,8 @@ RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리
 | 변수 | 공개 가능 | 설명 |
 |---|---|---|
 | `APP_ENV` | 예 | 환경명 |
-| `APP_ORIGIN` | 예 | SIWE domain/URI와 CORS/Origin 기준 |
+| `WEB_ORIGIN` | 예 | GitHub Pages origin, SIWE domain/URI와 CORS 기준 |
+| `API_ORIGIN` | 예 | PHP API의 외부 HTTPS origin |
 | `CHAIN_ID` | 예 | 환경별 허용 chain |
 | `BASE_RPC_URL` | 아니오 권고 | provider endpoint/API key 포함 가능 |
 | `GIBYEOL_CONTRACT_ADDRESS` | 예 | 환경별 배포 주소 |
@@ -34,6 +37,19 @@ RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리
 | `RECOVERY_PRIVATE_KEY` | 아니오 | X25519 private key |
 | `RESEND_API_KEY` | 아니오 | email provider key |
 | `RESEND_WEBHOOK_SECRET` | 아니오 | webhook verification |
+| `SESSION_SAME_SITE` | 예 | origin topology 검증 후 `Lax` 또는 `None` |
+
+GitHub Pages build-time 공개 변수:
+
+| 변수 | 설명 |
+|---|---|
+| `PAGES_BASE_PATH` | custom domain root면 빈 값, repository Pages면 `/gibyeol` |
+| `NEXT_PUBLIC_WEB_ORIGIN` | 최종 Pages origin |
+| `NEXT_PUBLIC_API_BASE_URL` | `${API_ORIGIN}/api/v1` |
+| `NEXT_PUBLIC_CHAIN_ID` | 환경별 chain ID |
+| `NEXT_PUBLIC_RPC_URL` | 브라우저용 read RPC |
+| `NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS` | 환경별 contract address |
+| `NEXT_PUBLIC_DRAND_ENDPOINT` | 검증한 quicknet endpoint |
 
 Next.js에 노출되는 변수에는 private key나 provider write/admin credential을 넣지 않는다. public RPC라도 abuse 비용이 있으면 domain restriction 가능한 key를 사용한다.
 
@@ -48,6 +64,15 @@ Next.js에 노출되는 변수에는 private key나 provider write/admin credent
 7. 배포 후 immutable/mapping smoke test와 test letter를 실행한다.
 8. 주소, tx hash, code hash, ABI를 환경 manifest에 고정한다.
 
+## GitHub Pages hosting
+
+- GitHub Actions에서 frozen lockfile로 lint/typecheck/test/build 후 `frontend/out`만 Pages artifact로 배포한다.
+- repository Pages subpath를 사용하면 build-time `basePath`를 적용한다. custom domain root와 같은 artifact를 공유하지 않는다.
+- Pull request는 build만 수행하며 production deploy 권한을 받지 않는다.
+- custom domain은 Pages 설정, DNS, HTTPS 강제를 함께 검증한다.
+- Pages에는 secret, PHP, server rewrite/proxy, runtime 환경변수가 없다고 가정한다.
+- 배포와 rollback 절차는 [github-pages.md](github-pages.md)를 따른다.
+
 ## PHP hosting
 
 - PHP public directory와 package/private/config 디렉터리를 분리한다.
@@ -55,8 +80,10 @@ Next.js에 노출되는 변수에는 private key나 provider write/admin credent
 - `.gbyl` MIME, immutable cache, ETag, upload/body/time limits를 Apache/PHP/application 세 층에서 맞춘다.
 - CLI 또는 scheduler가 GC/Postman을 중복 실행해도 DB/filesystem lock으로 안전해야 한다.
 - vendor는 lockfile 기반으로 build하고 FTP 배포가 필요하면 개발/CI에서 Composer install 후 artifact에 포함한다.
+- CORS는 정확한 `WEB_ORIGIN`과 credentials만 허용하고 state-changing request의 Origin을 검증한다.
+- `WEB_ORIGIN`과 `API_ORIGIN`이 cross-site라면 cookie 정책의 실제 브라우저 E2E가 production gate다.
 
-닷홈 무료형의 custom domain/HTTPS 연결 방식은 배포 레이어 결정이다. DomainPlus 또는 검증된 reverse proxy 중 하나를 선택하되 proxy 사용 시 `Host`, HTTPS, client IP 신뢰, SIWE domain/URI가 일관되는지 staging에서 검증한다.
+닷홈은 backend 전용이다. custom domain 또는 reverse proxy를 사용하면 `Host`, HTTPS, client IP 신뢰, `API_ORIGIN`이 일관되는지 staging에서 검증한다. 자세한 제약 확인은 [dothome-backend.md](dothome-backend.md)를 따른다.
 
 ## 관측성과 백업
 
