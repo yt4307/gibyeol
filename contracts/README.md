@@ -1,6 +1,6 @@
 # Gibyeol contracts
 
-`Gibyeol2026`의 Foundry 프로젝트입니다. 컨트랙트 구현은 protocol package의 canonical encoding과 golden vector가 확정된 뒤 시작합니다.
+`Gibyeol2026`의 Foundry 프로젝트입니다. 메일박스 key rotation, calldata-only envelope와 편지 payload, 무작위 `letterId` 멱등성을 구현합니다. 함수 selector와 event topic은 테스트에 snapshot으로 고정되어 있습니다.
 
 ```powershell
 # 빌드
