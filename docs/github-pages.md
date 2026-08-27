@@ -60,6 +60,8 @@ Custom domain을 쓰면 GitHub repository Pages 설정과 DNS를 모두 구성�
 
 Repository 설정의 **Settings → Pages → Build and deployment → Source**는 `GitHub Actions`로 지정한다. 배포 workflow는 main push와 수동 실행을 지원한다.
 
+Pages가 아직 활성화되지 않은 저장소에서도 정적 산출물 검증은 계속 실행한다. 실제 배포를 시작하려면 Pages source를 `GitHub Actions`로 지정한 다음 repository Actions variable `ENABLE_PAGES_DEPLOY=true`를 추가한다. 이 변수가 없으면 `configure-pages`와 deploy job만 건너뛰며 build·test·artifact 검증은 성공 또는 실패를 그대로 보고한다.
+
 ## Rollback
 
 직전 정상 commit을 다시 Pages workflow로 배포하는 것을 기본 rollback으로 한다. 프론트 rollback이 contract/API protocol version을 거슬러 올라가지 않는지 확인하며, 호환되지 않으면 이전 artifact를 배포하지 않는다.

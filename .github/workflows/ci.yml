@@ -34,5 +34,30 @@ jobs:
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
 
-      - name: 전체 품질 검증
-        run: pnpm verify
+      - name: 프런트엔드와 프로토콜 검증
+        run: |
+          pnpm lint:frontend
+          pnpm typecheck
+          pnpm test
+          pnpm build:frontend
+          pnpm build:storybook
+          node scripts/validate-deployment-manifest.mjs docs/deployment-manifest.example.json
+
+      - name: Compose 구성 검증
+        run: docker compose -f docker-compose.dev.yml config --quiet
+
+      - name: 백엔드 검증
+        run: |
+          docker compose -f docker-compose.dev.yml run --rm --no-deps backend composer install --no-interaction --prefer-dist --no-progress
+          docker compose -f docker-compose.dev.yml run --rm --no-deps backend composer validate --strict
+          docker compose -f docker-compose.dev.yml run --rm --no-deps \
+            -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
+            backend php bin/console cache:clear --env=test
+          docker compose -f docker-compose.dev.yml run --rm --no-deps \
+            -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
+            backend composer test
+
+      - name: 컨트랙트 검증
+        run: |
+          docker compose -f docker-compose.dev.yml run --rm --no-deps contracts fmt --check
+          docker compose -f docker-compose.dev.yml run --rm --no-deps contracts test

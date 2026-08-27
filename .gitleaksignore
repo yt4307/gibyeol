@@ -1,0 +1,2 @@
+# Resend webhook verifier test fixture; deterministic non-production bytes.
+c63e3fe33d2c2b78c752e1ab669d9b4a57f2d290:backend/tests/Email/ResendWebhookVerifierTest.php:generic-api-key:13

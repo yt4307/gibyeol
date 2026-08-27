@@ -33,6 +33,7 @@ jobs:
           cache: pnpm
 
       - name: Pages 준비
+        if: vars.ENABLE_PAGES_DEPLOY == 'true'
         uses: actions/configure-pages@v5
 
       - name: 의존성 설치
@@ -61,6 +62,7 @@ jobs:
           path: frontend/out
 
   deploy:
+    if: vars.ENABLE_PAGES_DEPLOY == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
