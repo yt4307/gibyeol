@@ -19,8 +19,12 @@ services:
       $emailFrom: '%env(EMAIL_FROM)%'
       $recoveryPrivateKey: '%env(RECOVERY_PRIVATE_KEY)%'
       $rpcUrl: '%env(BASE_RPC_URL)%'
+      $rpcFallbackUrl: '%env(BASE_RPC_FALLBACK_URL)%'
       $contractAddress: '%env(GIBYEOL_CONTRACT_ADDRESS)%'
       $unlockAt: '%env(int:UNLOCK_AT)%'
+      $contractDeploymentBlock: '%env(int:CONTRACT_DEPLOYMENT_BLOCK)%'
+      $safeBlockConfirmations: '%env(int:SAFE_BLOCK_CONFIRMATIONS)%'
+      $orphanMinAgeSeconds: '%env(int:ORPHAN_MIN_AGE_SECONDS)%'
 
   App\:
     resource: '../src/'
@@ -30,3 +34,4 @@ services:
   App\Auth\SiweVerifier: '@App\Auth\ZbkmSiweVerifier'
   App\Email\EmailSender: '@App\Email\ConfiguredEmailSender'
   App\Recovery\MailboxKeyVerifier: '@App\Recovery\RpcMailboxKeyVerifier'
+  App\Operations\ChainIndex: '@App\Operations\RpcChainIndex'
