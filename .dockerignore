@@ -6,6 +6,7 @@ node_modules
 .pnpm-store
 frontend/.next
 frontend/out
+frontend/storybook-static
 backend/vendor
 backend/var
 contracts/cache

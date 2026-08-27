@@ -14,17 +14,15 @@ gibyeol/
 └─ docs/                 v1 Freeze Candidate documents
 ```
 
-## 현재 목표: 닷홈 스모크 배포
+## 현재 목표: GitHub Pages 프론트엔드 배포
 
-전체 기능 구현 전에 Next.js 정적 export가 닷홈의 Apache/PHP 환경에서 정상 동작하는지 먼저 검증합니다.
+프론트엔드는 GitHub Pages에서 정적 export로 제공하고, PHP API와 package 저장소는 별도 호스트에서 운영합니다. 전체 기능 구현 전에 Pages 배포와 브라우저에서 API로 가는 cross-origin 경계를 먼저 검증합니다.
 
 ```powershell
-docker compose run --rm --no-deps frontend pnpm build:frontend
-docker compose run --rm --no-deps frontend pnpm package:dothome
-docker compose --profile dothome up -d dothome-smoke
+docker compose -f docker-compose.dev.yml run --rm --no-deps frontend pnpm build:frontend
 ```
 
-<http://localhost:8090>에서 정적 페이지, React hydration, PHP health check를 확인할 수 있습니다. 실제 FTP 업로드 대상은 `dist/dothome/public_html/`의 **내용물**입니다. 자세한 절차는 [닷홈 스모크 배포 문서](docs/dothome-smoke.md)를 따릅니다.
+빌드 결과는 `frontend/out/`에 생성됩니다. GitHub Pages workflow, custom domain/subpath, 배포 확인 절차는 [GitHub Pages 배포 문서](docs/github-pages.md)를 따릅니다. 전체 구현 순서는 [단계별 구현 계획](docs/implementation-plan.md)을 기준으로 합니다.
 
 ## 시작하기
 
@@ -32,35 +30,36 @@ docker compose --profile dothome up -d dothome-smoke
 
 ```powershell
 Copy-Item .env.example .env
-docker compose up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 | 서비스 | 주소 |
 |---|---|
-| Frontend | <http://localhost:3000> |
-| Backend health | <http://localhost:8080/api/v1/health> |
-| Anvil RPC | <http://localhost:8545> |
-| MySQL | `localhost:3306` |
+| Frontend | <http://localhost:3001> |
+| Storybook | <http://localhost:6007> |
+| Backend health | <http://localhost:8081/api/v1/health> |
+| Anvil RPC | <http://localhost:8546> |
+| MySQL | `localhost:3307` |
 
 ```powershell
 # 상태와 로그
-docker compose ps
-docker compose logs -f
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f
 
 # 테스트
-docker compose exec frontend pnpm test
-docker compose exec backend composer test
-docker compose run --rm contracts test
+docker compose -f docker-compose.dev.yml exec frontend pnpm test
+docker compose -f docker-compose.dev.yml exec backend composer test
+docker compose -f docker-compose.dev.yml run --rm contracts test
 
 # Symfony console / Composer
-docker compose exec backend php bin/console about
-docker compose exec backend composer install
+docker compose -f docker-compose.dev.yml exec backend php bin/console about
+docker compose -f docker-compose.dev.yml exec backend composer install
 
 # 종료
-docker compose down
+docker compose -f docker-compose.dev.yml down
 ```
 
-처음 dependency lockfile을 만들 때는 [개발 환경 문서](docs/development.md)의 절차를 따릅니다. 로컬 DB와 package volume까지 삭제할 때만 `docker compose down -v`를 사용합니다.
+처음 dependency lockfile을 만들 때는 [개발 환경 문서](docs/development.md)의 절차를 따릅니다. 개발 DB와 package volume까지 삭제할 때만 `docker compose -f docker-compose.dev.yml down -v`를 사용합니다.
 
 ## 문서
 
