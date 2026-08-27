@@ -15,6 +15,7 @@ services:
       $otpHmacKey: '%env(OTP_HMAC_KEY)%'
       $emailProvider: '%env(EMAIL_PROVIDER)%'
       $resendApiKey: '%env(RESEND_API_KEY)%'
+      $resendWebhookSecret: '%env(RESEND_WEBHOOK_SECRET)%'
       $emailFrom: '%env(EMAIL_FROM)%'
       $recoveryPrivateKey: '%env(RECOVERY_PRIVATE_KEY)%'
       $rpcUrl: '%env(BASE_RPC_URL)%'
