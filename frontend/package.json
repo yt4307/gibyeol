@@ -16,7 +16,6 @@
     "@emotion/styled": "^11.14.0",
     "@gibyeol/protocol": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
-    "drand-client": "1.4.2",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

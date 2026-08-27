@@ -43,6 +43,8 @@ describe("tlock boundary", () => {
       "아직 개봉 round에 도달하지 않았습니다.",
     );
     currentRound = 100n;
+    const wrongRecipient = await mailboxKeyPairFromSeed(hexToBytes("53".repeat(32)));
+    await expect(unwrapLetterKeyForRecipient(sealed, wrongRecipient, tlock)).rejects.toThrow();
     await expect(unwrapLetterKeyForRecipient(sealed, recipient, tlock)).resolves.toEqual(letterKey);
   });
 

@@ -10,6 +10,7 @@ import {
   MAX_ARCHIVE_BYTES,
   packGbyl,
   parseGbyl,
+  sha256,
   utf8,
 } from "../src";
 
@@ -44,6 +45,7 @@ describe("GBYL", () => {
 
     const tampered = archive.slice();
     tampered[tampered.length - 1] ^= 1;
+    expect(bytesToHex(await sha256(tampered))).not.toBe(bytesToHex(await sha256(archive)));
     await expect(decryptGbyl(tampered, letterKey, context)).rejects.toThrow();
   });
 

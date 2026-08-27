@@ -167,6 +167,18 @@ contract Gibyeol2026Test {
                 )
             );
         require(!stale, "stale key accepted");
+
+        bytes32 sameLetterId = keccak256("stale");
+        sender.seal(
+            target,
+            sameLetterId,
+            address(recipient),
+            2,
+            hex"47545831",
+            hex"7265777261707065642d666f722d6b65792d32",
+            keccak256("unchanged archive")
+        );
+        require(target.sealedLetters(sameLetterId), "rewrapped retry not sealed");
     }
 
     function testPayloadBoundaries() public {

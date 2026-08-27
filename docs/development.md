@@ -99,6 +99,12 @@ docker compose -f docker-compose.dev.yml exec backend composer require vendor/pa
 
 Protocol-sensitive dependency(tlock, drand, sodium adapter)는 PoC/golden vector를 통과한 정확한 버전으로 고정한다. 범위 버전이나 `latest`를 사용하지 않는다.
 
+Quicknet tlock 경계는 `tlock-js@0.9.0`에 포함된 `drand-client@1.2.5` 조합으로 고정한다. 현재 drand v2 `/info` 응답과 구형 client의 호환 문제를 피하기 위해 검증된 Quicknet chain info를 주입하며, 실제 최신 beacon round 왕복은 다음 명령으로 확인한다.
+
+```powershell
+pnpm verify:quicknet
+```
+
 ## Docker volume
 
 | volume | 내용 | 삭제 영향 |
