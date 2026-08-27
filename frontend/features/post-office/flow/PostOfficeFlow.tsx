@@ -24,7 +24,7 @@ export function PostOfficeFlow() {
       <WalletPanel address={wallet.session?.address} busy={wallet.busy} error={wallet.error} onConnect={() => { void wallet.connect(); }} />
       {wallet.session && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
       {mailbox.keyId && mailbox.keyId > 0 && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
-      {mailbox.keyId && mailbox.keyId > 0 && wallet.session ? <><Tabs aria-label="우체국 메뉴"><button className={view === "send" ? "active" : ""} onClick={() => setView("send")}>편지 보내기</button><button className={view === "inbox" ? "active" : ""} onClick={() => setView("inbox")}>받은 기별</button></Tabs>{view === "send" ? <SendFlow address={wallet.session.address} /> : <InboxFlow address={wallet.session.address} />}</> : wallet.session && <Hint>편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요.</Hint>}
+      {mailbox.keyId && mailbox.keyId > 0 && email.verified && wallet.session ? <><Tabs aria-label="우체국 메뉴"><button className={view === "send" ? "active" : ""} onClick={() => setView("send")}>편지 보내기</button><button className={view === "inbox" ? "active" : ""} onClick={() => setView("inbox")}>받은 기별</button></Tabs>{view === "send" ? <SendFlow address={wallet.session.address} /> : <InboxFlow address={wallet.session.address} />}</> : wallet.session && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
     </Workspace>
   </Shell>;
 }
