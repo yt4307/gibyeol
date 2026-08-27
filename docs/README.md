@@ -17,6 +17,7 @@
 | [verification-plan.md](verification-plan.md) | 구현 전 통과해야 하는 테스트와 합격 조건 |
 | [implementation-plan.md](implementation-plan.md) | 단계별 개발 순서와 완료 조건 |
 | [operations-runbook.md](operations-runbook.md) | GC, Postman, scheduler, backup/restore 운영 절차 |
+| [production-release-checklist.md](production-release-checklist.md) | Mainnet·Pages production release 승인 gate |
 | [deployment.md](deployment.md) | 환경, 비밀값, 운영 체크리스트 |
 | [development.md](development.md) | 모노레포 로컬 개발 환경과 명령어 |
 | [github-pages.md](github-pages.md) | GitHub Pages 정적 프론트 배포와 검증 절차 |

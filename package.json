@@ -10,6 +10,7 @@
     "lint:frontend": "pnpm --filter @gibyeol/frontend lint",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
+    "release:validate": "node scripts/validate-deployment-manifest.mjs",
     "verify": "./scripts/verify.sh"
   },
   "engines": {

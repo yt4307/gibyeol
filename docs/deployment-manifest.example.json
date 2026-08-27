@@ -11,5 +11,13 @@
   "unlockRound": 35107012,
   "frontendCommit": "",
   "backendCommit": "",
-  "deployedAt": ""
+  "deployedAt": "",
+  "explorerVerificationUrl": "",
+  "pagesUrl": "",
+  "approvals": [],
+  "owners": {
+    "monitoring": "",
+    "backup": "",
+    "incident": ""
+  }
 }

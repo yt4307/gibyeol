@@ -9,6 +9,7 @@ pnpm typecheck
 pnpm test
 pnpm build:frontend
 pnpm build:storybook
+node scripts/validate-deployment-manifest.mjs docs/deployment-manifest.example.json
 
 docker compose -f "$COMPOSE_FILE_PATH" config --quiet
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps backend \

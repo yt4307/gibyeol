@@ -52,6 +52,7 @@ jobs:
           NEXT_PUBLIC_CHAIN_ID: ${{ vars.NEXT_PUBLIC_CHAIN_ID }}
           NEXT_PUBLIC_RPC_URL: ${{ vars.NEXT_PUBLIC_RPC_URL }}
           NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS: ${{ vars.NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS }}
+          NEXT_PUBLIC_DEPLOYMENT_BLOCK: ${{ vars.NEXT_PUBLIC_DEPLOYMENT_BLOCK }}
         run: pnpm build:frontend
 
       - name: Pages 산출물 업로드

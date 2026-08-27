@@ -36,6 +36,7 @@ export function useMailboxOnboarding(address?: `0x${string}`) {
         hexToBytes(recoveryPublicKey, 32),
         createQuicknetTlock(),
       );
+      mailbox.seed.fill(0);
       const client = walletClient();
       const hash = await client.writeContract({
         account: address,

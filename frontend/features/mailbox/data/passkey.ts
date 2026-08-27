@@ -74,5 +74,9 @@ export async function openPasskeyMailbox(envelope: Uint8Array) {
   })) as PublicKeyCredential | null;
   if (!credential) throw new Error("Passkey 확인이 취소되었습니다.");
   const seed = await unwrapMailboxSeedGpk1(envelope, prfOutput(credential));
-  return mailboxKeyPairFromSeed(seed);
+  try {
+    return await mailboxKeyPairFromSeed(seed);
+  } finally {
+    seed.fill(0);
+  }
 }
