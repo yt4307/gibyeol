@@ -16,6 +16,7 @@
 | [security.md](security.md) | 암호화, 키 수명주기, 위협 모델 |
 | [verification-plan.md](verification-plan.md) | 구현 전 통과해야 하는 테스트와 합격 조건 |
 | [implementation-plan.md](implementation-plan.md) | 단계별 개발 순서와 완료 조건 |
+| [implementation-status.md](implementation-status.md) | 단계별 실제 상태, 검증 증거, 외부 대기 항목 |
 | [operations-runbook.md](operations-runbook.md) | GC, Postman, scheduler, backup/restore 운영 절차 |
 | [production-release-checklist.md](production-release-checklist.md) | Mainnet·Pages production release 승인 gate |
 | [deployment.md](deployment.md) | 환경, 비밀값, 운영 체크리스트 |
