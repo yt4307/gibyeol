@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "out/**",
+    "public/vendor/ffmpeg-core/**",
     "storybook-static/**",
     "next-env.d.ts",
   ]),

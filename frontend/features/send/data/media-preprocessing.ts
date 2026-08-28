@@ -4,6 +4,7 @@ import {
   MEDIA_TYPE,
   type MediaInput,
 } from "@gibyeol/protocol";
+import { browserTimelapseTranscoder } from "./timelapse-transcoder";
 
 export const MAX_IMAGE_EDGE = 2_048;
 export const MAX_IMAGE_PIXELS = 40_000_000;
@@ -12,7 +13,7 @@ export const JPEG_QUALITY = 0.86;
 
 const GBYL_HEADER_BYTES = 8;
 const GBYL_ITEM_OVERHEAD_BYTES = 20 + 16;
-const SUPPORTED_VIDEO_TYPES = new Set(["video/webm", "video/mp4"]);
+const SUPPORTED_VIDEO_TYPES = new Set(["video/webm", "video/mp4", "video/quicktime"]);
 const SUPPORTED_SOURCE_IMAGE_TYPES = new Set(["image/webp", "image/jpeg", "image/png"]);
 
 export interface DecodedImage {
@@ -32,6 +33,7 @@ export interface MediaPreprocessorRuntime {
     quality: number,
   ): Promise<Blob | null>;
   canPlayVideo(mimeType: string): boolean;
+  transcodeVideo(file: File): Promise<Blob>;
 }
 
 export interface MediaPreprocessingSummary {
@@ -39,6 +41,7 @@ export interface MediaPreprocessingSummary {
   processedBytes: number;
   estimatedArchiveBytes: number;
   convertedImages: number;
+  convertedVideos: number;
 }
 
 export interface PreprocessedMedia {
@@ -76,6 +79,9 @@ export const browserMediaRuntime: MediaPreprocessorRuntime = {
   canPlayVideo(mimeType) {
     if (typeof document === "undefined") return false;
     return document.createElement("video").canPlayType(mimeType) !== "";
+  },
+  transcodeVideo(file) {
+    return browserTimelapseTranscoder.transcode(file);
   },
 };
 
@@ -164,15 +170,19 @@ async function preprocessImage(file: File, runtime: MediaPreprocessorRuntime) {
 
 async function preprocessVideo(file: File, runtime: MediaPreprocessorRuntime) {
   if (!SUPPORTED_VIDEO_TYPES.has(file.type)) {
-    throw new TypeError(`${file.name}: WebM 또는 MP4 영상만 지원합니다.`);
+    throw new TypeError(`${file.name}: WebM, MP4 또는 MOV 영상만 지원합니다.`);
   }
-  if (!runtime.canPlayVideo(file.type)) {
-    throw new TypeError(`${file.name}: 이 브라우저에서 재생할 수 없는 영상 형식입니다.`);
+  if (!runtime.canPlayVideo("video/webm")) {
+    throw new TypeError(`${file.name}: 이 브라우저에서 WebM 타임랩스를 재생할 수 없습니다.`);
+  }
+  const converted = await runtime.transcodeVideo(file);
+  if (converted.type !== "video/webm" || converted.size === 0) {
+    throw new Error(`${file.name}: WebM 타임랩스 변환 결과가 올바르지 않습니다.`);
   }
   return {
     type: MEDIA_TYPE.TIMELAPSE,
-    codec: file.type === "video/webm" ? MEDIA_CODEC.WEBM : MEDIA_CODEC.MP4,
-    bytes: await blobBytes(file),
+    codec: MEDIA_CODEC.WEBM,
+    bytes: await blobBytes(converted),
   } satisfies MediaInput;
 }
 
@@ -200,6 +210,7 @@ export async function preprocessMediaFiles(
       processedBytes: items.reduce((total, item) => total + item.bytes.byteLength, 0),
       estimatedArchiveBytes: assertArchiveSize(items),
       convertedImages,
+      convertedVideos: files.filter((file) => file.type.startsWith("video/")).length,
     },
   };
 }

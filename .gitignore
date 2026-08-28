@@ -12,6 +12,7 @@ pnpm-debug.log*
 .next/
 frontend/out/
 frontend/storybook-static/
+frontend/public/vendor/ffmpeg-core/
 backend/var/
 contracts/cache/
 contracts/out/

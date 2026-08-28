@@ -20,6 +20,7 @@ function runtime(overrides: Partial<MediaPreprocessorRuntime> = {}): MediaPrepro
     } satisfies DecodedImage),
     encodeImage: vi.fn().mockResolvedValue(new Blob([new Uint8Array(20)], { type: "image/webp" })),
     canPlayVideo: vi.fn().mockReturnValue(true),
+    transcodeVideo: vi.fn().mockResolvedValue(new Blob([new Uint8Array(6)], { type: "video/webm" })),
     ...overrides,
   };
 }
@@ -46,6 +47,7 @@ describe("media preprocessing", () => {
       processedBytes: 20,
       estimatedArchiveBytes: 64,
       convertedImages: 1,
+      convertedVideos: 0,
     });
   });
 
@@ -66,13 +68,16 @@ describe("media preprocessing", () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it("accepts playable WebM/MP4 and rejects an unsupported browser codec", async () => {
-    const video = new File([new Uint8Array(10)], "clip.webm", { type: "video/webm" });
-    await expect(preprocessMediaFiles([video], runtime())).resolves.toMatchObject({
+  it("converts supported source videos to WebM and rejects an unsupported browser output", async () => {
+    const video = new File([new Uint8Array(10)], "clip.mov", { type: "video/quicktime" });
+    const adapter = runtime();
+    await expect(preprocessMediaFiles([video], adapter)).resolves.toMatchObject({
       items: [{ type: MEDIA_TYPE.TIMELAPSE, codec: MEDIA_CODEC.WEBM }],
+      summary: { originalBytes: 10, processedBytes: 6, convertedVideos: 1 },
     });
+    expect(adapter.transcodeVideo).toHaveBeenCalledWith(video);
     await expect(preprocessMediaFiles([video], runtime({ canPlayVideo: () => false }))).rejects.toThrow(
-      "재생할 수 없는 영상 형식",
+      "WebM 타임랩스를 재생할 수 없습니다",
     );
   });
 

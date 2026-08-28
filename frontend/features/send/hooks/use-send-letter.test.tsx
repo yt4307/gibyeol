@@ -83,7 +83,7 @@ describe("useSendLetter", () => {
     mocks.wrapLetterKeyForRecipient.mockResolvedValue(new Uint8Array([9, 9]));
     mocks.preprocessMediaFiles.mockResolvedValue({
       items: [],
-      summary: { originalBytes: 0, processedBytes: 0, estimatedArchiveBytes: 8, convertedImages: 0 },
+      summary: { originalBytes: 0, processedBytes: 0, estimatedArchiveBytes: 8, convertedImages: 0, convertedVideos: 0 },
     });
     mocks.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     mocks.writeContract.mockResolvedValue(transactionHash);
