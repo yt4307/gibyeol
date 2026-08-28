@@ -3,6 +3,17 @@ pragma solidity 0.8.30;
 
 import { Gibyeol2026 } from "../src/Gibyeol2026.sol";
 
+struct RecordedLog {
+    bytes32[] topics;
+    bytes data;
+    address emitter;
+}
+
+interface VmLogs {
+    function recordLogs() external;
+    function getRecordedLogs() external returns (RecordedLog[] memory);
+}
+
 contract GibyeolActor {
     function register(
         Gibyeol2026 target,
@@ -29,6 +40,7 @@ contract GibyeolActor {
 }
 
 contract Gibyeol2026Test {
+    VmLogs internal constant VM = VmLogs(address(uint160(uint256(keccak256("hevm cheat code")))));
     uint64 internal constant UNLOCK_AT = 1_798_124_400;
     uint64 internal constant UNLOCK_ROUND = 42_000_000;
     bytes32 internal constant CHAIN_HASH = keccak256("quicknet");
@@ -129,6 +141,49 @@ contract Gibyeol2026Test {
                 )
             );
         require(!success, "duplicate accepted");
+    }
+
+    function testEventTopicsAndDataMatchFreezeAbi() public {
+        bytes32 publicKey = bytes32(uint256(0x1234));
+        VM.recordLogs();
+        recipient.register(target, publicKey, hex"0102", hex"0304");
+        RecordedLog[] memory mailboxLogs = VM.getRecordedLogs();
+        require(mailboxLogs.length == 1, "mailbox log count");
+        require(
+            mailboxLogs[0].topics[0] == keccak256("MailboxKeyRegistered(address,uint32,bytes32)"),
+            "mailbox signature"
+        );
+        require(
+            mailboxLogs[0].topics[1] == bytes32(uint256(uint160(address(recipient)))),
+            "mailbox owner topic"
+        );
+        require(mailboxLogs[0].topics[2] == bytes32(uint256(1)), "mailbox key topic");
+        require(abi.decode(mailboxLogs[0].data, (bytes32)) == publicKey, "mailbox data");
+
+        bytes32 letterId = keccak256("event letter");
+        bytes32 archiveSha256 = keccak256("event archive");
+        VM.recordLogs();
+        sender.seal(
+            target, letterId, address(recipient), 1, hex"47545831", hex"1234", archiveSha256
+        );
+        RecordedLog[] memory letterLogs = VM.getRecordedLogs();
+        require(letterLogs.length == 1, "letter log count");
+        require(
+            letterLogs[0].topics[0]
+                == keccak256("LetterSealed(bytes32,address,address,uint32,bytes32)"),
+            "letter signature"
+        );
+        require(letterLogs[0].topics[1] == letterId, "letter ID topic");
+        require(
+            letterLogs[0].topics[2] == bytes32(uint256(uint160(address(sender)))), "sender topic"
+        );
+        require(
+            letterLogs[0].topics[3] == bytes32(uint256(uint160(address(recipient)))),
+            "recipient topic"
+        );
+        (uint32 keyId, bytes32 archive) = abi.decode(letterLogs[0].data, (uint32, bytes32));
+        require(keyId == 1, "recipient key data");
+        require(archive == archiveSha256, "archive data");
     }
 
     function testRejectsStaleKeyAndMissingMailbox() public {
