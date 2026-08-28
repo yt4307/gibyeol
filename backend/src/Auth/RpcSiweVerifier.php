@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Http\HttpClient;
+use App\Http\JsonRpcClient;
 use kornrunner\Keccak;
 
 final class RpcSiweVerifier implements SiweVerifier
@@ -13,9 +13,7 @@ final class RpcSiweVerifier implements SiweVerifier
     private const SECP256K1_HALF_ORDER = '7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0';
 
     public function __construct(
-        private readonly HttpClient $httpClient,
-        private readonly string $rpcUrl,
-        private readonly string $rpcFallbackUrl,
+        private readonly JsonRpcClient $rpcClient,
     ) {
     }
 
@@ -62,32 +60,18 @@ final class RpcSiweVerifier implements SiweVerifier
 
         $hash = Keccak::hash("\x19Ethereum Signed Message:\n".strlen($message).$message, 256);
         $calldata = '0x'.$hash.str_pad(dechex($v), 64, '0', STR_PAD_LEFT).$r.$s;
-        $payload = json_encode([
-            'jsonrpc' => '2.0',
-            'id' => 1,
-            'method' => 'eth_call',
-            'params' => [[
+        try {
+            $result = $this->rpcClient->requestConsistent('eth_call', [[
                 'to' => self::ECRECOVER_ADDRESS,
                 'data' => $calldata,
-            ], 'latest'],
-        ], JSON_THROW_ON_ERROR);
+            ], 'latest']);
+        } catch (\Throwable) {
+            return null;
+        }
+        if (is_string($result) && 1 === preg_match('/\A0x[0-9A-Fa-f]{64}\z/D', $result)) {
+            $address = '0x'.strtolower(substr($result, -40));
 
-        foreach (array_values(array_unique(array_filter([$this->rpcUrl, $this->rpcFallbackUrl]))) as $rpcUrl) {
-            try {
-                $response = $this->httpClient->post($rpcUrl, $payload, ['Content-Type: application/json'], 10);
-                if (!$response->isSuccessful()) {
-                    continue;
-                }
-                $decoded = json_decode($response->body, true, 16, JSON_THROW_ON_ERROR);
-                $result = is_array($decoded) ? ($decoded['result'] ?? null) : null;
-                if (is_string($result) && 1 === preg_match('/\A0x[0-9A-Fa-f]{64}\z/D', $result)) {
-                    $address = '0x'.strtolower(substr($result, -40));
-
-                    return '0x'.str_repeat('0', 40) === $address ? null : $address;
-                }
-            } catch (\Throwable) {
-                // Try the next endpoint without exposing credential-bearing URLs.
-            }
+            return '0x'.str_repeat('0', 40) === $address ? null : $address;
         }
 
         return null;

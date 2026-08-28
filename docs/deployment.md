@@ -12,6 +12,10 @@
 
 RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리한다. production에서 Base 공식 public RPC를 주 provider로 사용하지 않는다.
 
+서버 RPC는 요청 전에 환경별 chain ID를 확인한다. primary와 fallback이 모두 정상인 결정적
+`eth_call`은 두 결과가 일치할 때만 사용하고, 한 endpoint가 실패하면 정상 endpoint로 계속한다.
+두 endpoint가 서로 다른 값을 반환하면 성공값을 임의로 선택하지 않고 요청을 실패시킨다.
+
 프론트엔드는 GitHub Pages, PHP/API는 별도 닷홈 HTTPS origin에 배포하는 것을 현재 목표로 한다. 각 환경의 배포 manifest에는 최소 `WEB_ORIGIN`, `API_ORIGIN`, Pages base path, chain ID, contract address, drand chain/round, frontend/backend commit SHA를 함께 기록한다.
 
 ## 설정 목록

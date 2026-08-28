@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operations;
 
-use App\Http\HttpClient;
+use App\Http\JsonRpcClient;
 
 final class RpcChainIndex implements ChainIndex
 {
@@ -12,9 +12,7 @@ final class RpcChainIndex implements ChainIndex
     private const BLOCK_CHUNK = 10_000;
 
     public function __construct(
-        private readonly HttpClient $httpClient,
-        private readonly string $rpcUrl,
-        private readonly string $rpcFallbackUrl,
+        private readonly JsonRpcClient $rpcClient,
         private readonly string $contractAddress,
         private readonly int $contractDeploymentBlock,
         private readonly int $safeBlockConfirmations,
@@ -23,7 +21,7 @@ final class RpcChainIndex implements ChainIndex
 
     public function snapshot(): ChainSnapshot
     {
-        foreach (array_values(array_unique(array_filter([$this->rpcUrl, $this->rpcFallbackUrl]))) as $rpcUrl) {
+        foreach ($this->rpcClient->endpoints() as $rpcUrl) {
             try {
                 return $this->snapshotFrom($rpcUrl);
             } catch (\Throwable) {
@@ -35,7 +33,7 @@ final class RpcChainIndex implements ChainIndex
 
     private function snapshotFrom(string $rpcUrl): ChainSnapshot
     {
-        $headHex = $this->rpc($rpcUrl, 'eth_blockNumber');
+        $headHex = $this->rpcClient->requestFrom($rpcUrl, 'eth_blockNumber', [], 20);
         if (!is_string($headHex) || 1 !== preg_match('/^0x[0-9a-f]+$/Di', $headHex)) {
             throw new \RuntimeException('RPC returned an invalid chain head.');
         }
@@ -48,12 +46,12 @@ final class RpcChainIndex implements ChainIndex
         $hashes = [];
         for ($from = $this->contractDeploymentBlock; $from <= $safe; $from += self::BLOCK_CHUNK) {
             $to = min($safe, $from + self::BLOCK_CHUNK - 1);
-            $logs = $this->rpc($rpcUrl, 'eth_getLogs', [[
+            $logs = $this->rpcClient->requestFrom($rpcUrl, 'eth_getLogs', [[
                 'address' => strtolower($this->contractAddress),
                 'fromBlock' => '0x'.dechex($from),
                 'toBlock' => '0x'.dechex($to),
                 'topics' => [self::LETTER_SEALED_TOPIC],
-            ]]);
+            ]], 20);
             if (!is_array($logs)) {
                 throw new \RuntimeException('RPC returned an invalid log page.');
             }
@@ -71,20 +69,5 @@ final class RpcChainIndex implements ChainIndex
         }
         ksort($counts);
         return new ChainSnapshot($head, $safe, $counts, $hashes);
-    }
-
-    /** @param list<mixed> $params */
-    private function rpc(string $rpcUrl, string $method, array $params = []): mixed
-    {
-        $body = json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => $method, 'params' => $params], JSON_THROW_ON_ERROR);
-        $response = $this->httpClient->post($rpcUrl, $body, ['Content-Type: application/json'], 20);
-        if (!$response->isSuccessful()) {
-            throw new \RuntimeException('RPC request failed; operation aborted without mutation.');
-        }
-        $decoded = json_decode($response->body, true, 32, JSON_THROW_ON_ERROR);
-        if (!is_array($decoded) || array_key_exists('error', $decoded) || !array_key_exists('result', $decoded)) {
-            throw new \RuntimeException('RPC returned an error; operation aborted without mutation.');
-        }
-        return $decoded['result'];
     }
 }

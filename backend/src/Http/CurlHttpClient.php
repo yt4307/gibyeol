@@ -21,7 +21,7 @@ final class CurlHttpClient implements HttpClient
                 CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_CONNECTTIMEOUT => $timeoutSeconds,
+                CURLOPT_CONNECTTIMEOUT => min(5, $timeoutSeconds),
                 CURLOPT_TIMEOUT => $timeoutSeconds,
                 CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             ])) {

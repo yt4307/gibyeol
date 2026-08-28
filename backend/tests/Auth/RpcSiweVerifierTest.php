@@ -6,6 +6,7 @@ namespace App\Tests\Auth;
 
 use App\Auth\RpcSiweVerifier;
 use App\Http\HttpResponse;
+use App\Http\JsonRpcClient;
 use App\Tests\Support\QueueHttpClient;
 use PHPUnit\Framework\TestCase;
 
@@ -29,13 +30,17 @@ final class RpcSiweVerifierTest extends TestCase
 
     public function testRecoversSignerThroughEvmPrecompile(): void
     {
-        $client = new QueueHttpClient([new HttpResponse(200, self::RECOVERED)]);
-        $verified = (new RpcSiweVerifier($client, 'https://rpc.example', ''))->verify(self::MESSAGE, self::SIGNATURE);
+        $client = new QueueHttpClient([
+            $this->rpcResponse('0x14a34'),
+            new HttpResponse(200, self::RECOVERED),
+        ]);
+        $verified = (new RpcSiweVerifier($this->rpcClient($client, 'https://rpc.example')))
+            ->verify(self::MESSAGE, self::SIGNATURE);
 
         self::assertNotNull($verified);
         self::assertSame('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266', $verified->address);
         self::assertSame(84532, $verified->chainId);
-        $payload = json_decode($client->requests[0]['body'], true, 16, JSON_THROW_ON_ERROR);
+        $payload = json_decode($client->requests[1]['body'], true, 16, JSON_THROW_ON_ERROR);
         self::assertSame('eth_call', $payload['method']);
         self::assertSame('0x0000000000000000000000000000000000000001', $payload['params'][0]['to']);
         self::assertSame(self::CALLDATA, $payload['params'][0]['data']);
@@ -45,23 +50,46 @@ final class RpcSiweVerifierTest extends TestCase
     {
         $client = new QueueHttpClient([
             new HttpResponse(503, ''),
+            $this->rpcResponse('0x14a34'),
             new HttpResponse(200, self::RECOVERED),
         ]);
-        $verified = (new RpcSiweVerifier($client, 'https://primary.example', 'https://fallback.example'))
+        $verified = (new RpcSiweVerifier($this->rpcClient(
+            $client,
+            'https://primary.example',
+            'https://fallback.example',
+        )))
             ->verify(self::MESSAGE, self::SIGNATURE);
 
         self::assertNotNull($verified);
         self::assertSame('https://primary.example', $client->requests[0]['url']);
         self::assertSame('https://fallback.example', $client->requests[1]['url']);
+        self::assertSame('https://fallback.example', $client->requests[2]['url']);
     }
 
     public function testRejectsMalformedSignatureWithoutRpcRequest(): void
     {
         $client = new QueueHttpClient([]);
-        $verified = (new RpcSiweVerifier($client, 'https://rpc.example', ''))
+        $verified = (new RpcSiweVerifier($this->rpcClient($client, 'https://rpc.example')))
             ->verify(self::MESSAGE, substr(self::SIGNATURE, 0, -2).'00');
 
         self::assertNull($verified);
         self::assertSame([], $client->requests);
+    }
+
+    private function rpcClient(
+        QueueHttpClient $client,
+        string $primary,
+        string $fallback = '',
+    ): JsonRpcClient {
+        return new JsonRpcClient($client, $primary, $fallback, 84532);
+    }
+
+    private function rpcResponse(mixed $result): HttpResponse
+    {
+        return new HttpResponse(200, json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => $result,
+        ], JSON_THROW_ON_ERROR));
     }
 }
