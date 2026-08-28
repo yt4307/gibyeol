@@ -15,8 +15,10 @@ COPY infra/docker/backend/php.ini /usr/local/etc/php/conf.d/gibyeol.ini
 COPY infra/docker/backend/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY infra/docker/backend/entrypoint.sh /usr/local/bin/gibyeol-entrypoint
 
-RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts \
-    && composer dump-autoload --no-interaction --optimize \
+ARG COMPOSER_INSTALL_FLAGS=""
+
+RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts ${COMPOSER_INSTALL_FLAGS} \
+    && composer dump-autoload --no-interaction --optimize ${COMPOSER_INSTALL_FLAGS} \
     && mkdir -p var/cache var/log \
     && chown -R www-data:www-data var \
     && chmod +x /usr/local/bin/gibyeol-entrypoint

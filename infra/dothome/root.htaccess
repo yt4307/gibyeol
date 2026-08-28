@@ -1,0 +1,18 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^api/v1(?:/.*)?$ index.php [QSA,L]
+</IfModule>
+
+<FilesMatch "(^\.|\.(?:env|ini|log|sql|ya?ml)$)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

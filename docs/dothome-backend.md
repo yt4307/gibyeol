@@ -52,6 +52,27 @@ FTP 전용 계정에서는 저장소의 `backend`를 웹 루트와 직접 동기
 제한한다. `uploadOnSave`와 원격 파일 자동 삭제는 비활성화하며 동기화 전 변경 목록을 확인한다.
 FTP 비밀번호는 workspace 설정에 기록하지 않고 운영체제 keychain에 보관한다.
 
+FTP 계정이 `html`만 노출하는 경우 `./scripts/build-dothome-artifact.sh`로 다음 구조를 생성한다.
+
+```text
+.deploy/dothome/html/
+├── .htaccess
+├── index.php
+└── _gibyeol/
+    ├── .htaccess
+    ├── .env
+    ├── .env.local.example
+    ├── config/
+    ├── src/
+    ├── vendor/
+    └── var/
+```
+
+루트 `index.php`는 `/api/v1/*` 요청만 전달받는 공개 진입점이며 `_gibyeol`은 Apache 2.4와 2.2
+호환 규칙으로 모든 웹 접근을 거부한다.
+생성기는 production dependency만 설치하고 dev dependency, test, 기존 환경파일과 cache를 제외한다.
+재생성 시 기존 staging 교체가 필요하므로 검토 후에만 `--force`를 사용한다.
+
 ## FTP 전용 배포 순서
 
 1. `infra/dothome/gibyeol-preflight.php`를 staging의 `html`에 복사하여 단독 업로드한다.
