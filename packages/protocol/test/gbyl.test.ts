@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bytesToHex,
+  concatBytes,
   decryptGbyl,
   encodeLetterContext,
   gbylFilename,
@@ -85,5 +86,38 @@ describe("GBYL", () => {
         () => iv,
       ),
     ).rejects.toThrow(RangeError);
+  });
+
+  it("accepts an exactly 10 MiB structurally valid archive and rejects one byte more", () => {
+    const archive = new Uint8Array(MAX_ARCHIVE_BYTES);
+    archive.set([0x47, 0x42, 0x59, 0x4c, 0x01, 0x00, 0x00, 0x01]);
+    archive.set([MEDIA_TYPE.IMAGE, MEDIA_CODEC.WEBP, 0x00, 0x00], 8);
+    const ciphertextLength = MAX_ARCHIVE_BYTES - 28;
+    new DataView(archive.buffer).setUint32(24, ciphertextLength, false);
+
+    expect(parseGbyl(archive)).toHaveLength(1);
+    expect(() => parseGbyl(new Uint8Array(MAX_ARCHIVE_BYTES + 1))).toThrow(RangeError);
+  });
+
+  it("authenticates item order through index-specific keys and AAD", async () => {
+    const archive = await packGbyl(
+      [
+        { type: MEDIA_TYPE.IMAGE, codec: MEDIA_CODEC.WEBP, bytes: utf8("image") },
+        { type: MEDIA_TYPE.TIMELAPSE, codec: MEDIA_CODEC.WEBM, bytes: utf8("video") },
+      ],
+      letterKey,
+      context,
+      () => iv,
+    );
+    const [first, second] = parseGbyl(archive);
+    const firstLength = 20 + first!.ciphertext.byteLength;
+    const reordered = concatBytes(
+      archive.slice(0, 8),
+      archive.slice(8 + firstLength),
+      archive.slice(8, 8 + firstLength),
+    );
+
+    expect(parseGbyl(reordered)).toHaveLength(2);
+    await expect(decryptGbyl(reordered, letterKey, context)).rejects.toThrow();
   });
 });

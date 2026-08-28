@@ -42,5 +42,13 @@ describe("GTX1", () => {
     const wrongLength = encrypted.slice();
     wrongLength[8] ^= 1;
     await expect(decryptTextGtx1(wrongLength, letterKey, context)).rejects.toThrow(TypeError);
+
+    const wrongIv = encrypted.slice();
+    wrongIv[9] ^= 1;
+    await expect(decryptTextGtx1(wrongIv, letterKey, context)).rejects.toThrow();
+
+    const wrongCiphertext = encrypted.slice();
+    wrongCiphertext[wrongCiphertext.length - 1] ^= 1;
+    await expect(decryptTextGtx1(wrongCiphertext, letterKey, context)).rejects.toThrow();
   });
 });
