@@ -46,3 +46,13 @@ FTP 전용 계정에서는 저장소의 `backend`를 웹 루트와 직접 동기
 `.deploy/dothome`을 Git에서 제외된 staging root로 사용하고, SFTPresso의 `context`도 이 경로로
 제한한다. `uploadOnSave`와 원격 파일 자동 삭제는 비활성화하며 동기화 전 변경 목록을 확인한다.
 FTP 비밀번호는 workspace 설정에 기록하지 않고 운영체제 keychain에 보관한다.
+
+## FTP 전용 배포 순서
+
+1. `infra/dothome/gibyeol-preflight.php`를 staging의 `html`에 복사하여 단독 업로드한다.
+2. 브라우저에서 `/gibyeol-preflight.php`를 열어 PHP 8.4, 필수 확장, 쓰기 및 외부 HTTPS 조건을 확인한다.
+3. 결과를 기록한 직후 원격의 `gibyeol-preflight.php`를 삭제한다.
+4. 점검을 통과한 환경에서만 production dependency와 보호 규칙을 포함한 전체 artifact를 업로드한다.
+
+점검 파일은 `phpinfo()`를 호출하지 않으며 비밀값과 서버 절대 경로를 출력하지 않는다. 다만 공개
+상태로 계속 둘 이유가 없으므로 전체 artifact에는 포함하지 않는다.
