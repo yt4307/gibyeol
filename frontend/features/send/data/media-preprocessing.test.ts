@@ -20,7 +20,10 @@ function runtime(overrides: Partial<MediaPreprocessorRuntime> = {}): MediaPrepro
     } satisfies DecodedImage),
     encodeImage: vi.fn().mockResolvedValue(new Blob([new Uint8Array(20)], { type: "image/webp" })),
     canPlayVideo: vi.fn().mockReturnValue(true),
-    transcodeVideo: vi.fn().mockResolvedValue(new Blob([new Uint8Array(6)], { type: "video/webm" })),
+    transcodeVideo: vi.fn().mockResolvedValue({
+      blob: new Blob([new Uint8Array(6)], { type: "video/webm" }),
+      backend: "webcodecs",
+    }),
     ...overrides,
   };
 }
@@ -48,6 +51,8 @@ describe("media preprocessing", () => {
       estimatedArchiveBytes: 64,
       convertedImages: 1,
       convertedVideos: 0,
+      webCodecsVideos: 0,
+      ffmpegVideos: 0,
     });
   });
 
@@ -73,7 +78,13 @@ describe("media preprocessing", () => {
     const adapter = runtime();
     await expect(preprocessMediaFiles([video], adapter)).resolves.toMatchObject({
       items: [{ type: MEDIA_TYPE.TIMELAPSE, codec: MEDIA_CODEC.WEBM }],
-      summary: { originalBytes: 10, processedBytes: 6, convertedVideos: 1 },
+      summary: {
+        originalBytes: 10,
+        processedBytes: 6,
+        convertedVideos: 1,
+        webCodecsVideos: 1,
+        ffmpegVideos: 0,
+      },
     });
     expect(adapter.transcodeVideo).toHaveBeenCalledWith(video);
     await expect(preprocessMediaFiles([video], runtime({ canPlayVideo: () => false }))).rejects.toThrow(

@@ -59,7 +59,7 @@ gibyeol/
 
 1. Wallet을 연결하고 recipient의 `currentKeyId`와 public key를 Base에서 읽는다.
 2. random `letterId`와 `LetterKey`를 만든다.
-3. 사진은 최대 변 2,048px로 축소해 WebP 우선 변환하고, WebM/MP4/MOV 원본 영상은 브라우저의 싱글스레드 ffmpeg.wasm에서 8배속·최대 1,280px 무음 WebM 타임랩스로 변환한 뒤 media를 GBYL로 만든다.
+3. 사진은 최대 변 2,048px로 축소해 WebP 우선 변환하고, WebM/MP4/MOV 원본 영상은 WebCodecs+Mediabunny를 우선 사용해 8배속·최대 1,280px 무음 WebM 타임랩스로 변환한다. 입력 decode 또는 VP8 encode가 지원되지 않거나 실행에 실패하면 싱글스레드 ffmpeg.wasm으로 재시도한 뒤 media를 GBYL로 만든다.
 4. 최종 GBYL SHA-256을 계산해 PHP에 PUT한다.
 5. LetterKey를 recipient public key로 wrap한 뒤 tlock한다.
 6. `sealLetter` 트랜잭션을 전송한다.

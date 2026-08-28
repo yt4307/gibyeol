@@ -23,6 +23,7 @@
     "@ffmpeg/util": "0.12.2",
     "@gibyeol/protocol": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
+    "mediabunny": "1.55.3",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

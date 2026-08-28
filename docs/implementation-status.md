@@ -15,14 +15,14 @@
 | M8 Base Sepolia E2E | 로컬 구성요소 rehearsal 완료 | 실제 암호 흐름과 Anvil deploy/register/seal을 각각 검증. 실제 Sepolia 통합 tx는 RPC/deployer/recovery public key 대기 |
 | M9 package/auth | 완료 | 실제 SIWE signature·nonce replay·GBYL upload와 빈 MySQL에 4개 migration 적용 검증 |
 | M10 email/recovery | 로컬 완료 | `582ab05`, `c63e3fe`, `4fcb994`, `deefa9b`, OTP/HMAC/recovery/webhook과 초기 이메일 필수 확인 |
-| M11 발송 UI | 로컬 완료 | 세분화 상태·중복 tx 복구·키 회전 재포장, 사진 2,048px/WebP 전처리, 싱글스레드 ffmpeg.wasm 영상 타임랩스 변환과 10 MiB 사전 검증, 핵심 hook 회귀 테스트, static build와 Storybook |
+| M11 발송 UI | 로컬 완료 | 세분화 상태·중복 tx 복구·키 회전 재포장, 사진 2,048px/WebP 전처리, WebCodecs 우선·싱글스레드 ffmpeg.wasm 대체 타임랩스 변환과 10 MiB 사전 검증, 핵심 hook 회귀 테스트, static build와 Storybook |
 | M12 받은 편지 UI | 로컬 완료 | 직접 logs/calldata 조회와 event/calldata 일치 회귀 테스트, 온체인 키·SHA 검증, 사진/영상 복호화와 이메일 복구 flow |
 | M13 운영 job | 로컬 rehearsal 완료 | `ab5af19`, GC dry-run과 Postman 2회 실행에서 두 번째 발송 0건 |
 | M14 release gate | 자동 gate 완료 | `a333011`, manifest/round 검증과 production checklist. 실제 production 승인 대기 |
 
 ## 최신 전체 검증 결과
 
-- frontend: 4 files, 13 tests와 ESLint, TypeScript, Next.js static export 성공
+- frontend: 4 files, 15 tests와 ESLint, TypeScript, Next.js static export 성공
 - Storybook static build 성공
 - protocol: 8 files, 18 tests 성공. 10 MiB 정확 경계, item 순서 인증, mailbox부터 개봉까지 로컬 암호 흐름 포함
 - backend: 30 tests, 84 assertions 성공

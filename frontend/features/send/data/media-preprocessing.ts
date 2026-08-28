@@ -4,7 +4,11 @@ import {
   MEDIA_TYPE,
   type MediaInput,
 } from "@gibyeol/protocol";
-import { browserTimelapseTranscoder } from "./timelapse-transcoder";
+import {
+  browserTimelapseTranscoder,
+  type TimelapseBackend,
+  type TimelapseTranscodeResult,
+} from "./timelapse-transcoder";
 
 export const MAX_IMAGE_EDGE = 2_048;
 export const MAX_IMAGE_PIXELS = 40_000_000;
@@ -33,7 +37,7 @@ export interface MediaPreprocessorRuntime {
     quality: number,
   ): Promise<Blob | null>;
   canPlayVideo(mimeType: string): boolean;
-  transcodeVideo(file: File): Promise<Blob>;
+  transcodeVideo(file: File): Promise<TimelapseTranscodeResult>;
 }
 
 export interface MediaPreprocessingSummary {
@@ -42,6 +46,8 @@ export interface MediaPreprocessingSummary {
   estimatedArchiveBytes: number;
   convertedImages: number;
   convertedVideos: number;
+  webCodecsVideos: number;
+  ffmpegVideos: number;
 }
 
 export interface PreprocessedMedia {
@@ -176,14 +182,17 @@ async function preprocessVideo(file: File, runtime: MediaPreprocessorRuntime) {
     throw new TypeError(`${file.name}: 이 브라우저에서 WebM 타임랩스를 재생할 수 없습니다.`);
   }
   const converted = await runtime.transcodeVideo(file);
-  if (converted.type !== "video/webm" || converted.size === 0) {
+  if (converted.blob.type !== "video/webm" || converted.blob.size === 0) {
     throw new Error(`${file.name}: WebM 타임랩스 변환 결과가 올바르지 않습니다.`);
   }
   return {
-    type: MEDIA_TYPE.TIMELAPSE,
-    codec: MEDIA_CODEC.WEBM,
-    bytes: await blobBytes(converted),
-  } satisfies MediaInput;
+    item: {
+      type: MEDIA_TYPE.TIMELAPSE,
+      codec: MEDIA_CODEC.WEBM,
+      bytes: await blobBytes(converted.blob),
+    } satisfies MediaInput,
+    backend: converted.backend,
+  };
 }
 
 export async function preprocessMediaFiles(
@@ -192,6 +201,7 @@ export async function preprocessMediaFiles(
 ): Promise<PreprocessedMedia> {
   const items: MediaInput[] = [];
   let convertedImages = 0;
+  const videoBackends: TimelapseBackend[] = [];
   for (const file of files) {
     if (file.size === 0) throw new RangeError(`${file.name}: 빈 파일은 첨부할 수 없습니다.`);
     if (file.type.startsWith("image/")) {
@@ -199,7 +209,9 @@ export async function preprocessMediaFiles(
       items.push(processed.item);
       if (processed.converted) convertedImages += 1;
     } else {
-      items.push(await preprocessVideo(file, runtime));
+      const processed = await preprocessVideo(file, runtime);
+      items.push(processed.item);
+      videoBackends.push(processed.backend);
     }
   }
 
@@ -210,7 +222,9 @@ export async function preprocessMediaFiles(
       processedBytes: items.reduce((total, item) => total + item.bytes.byteLength, 0),
       estimatedArchiveBytes: assertArchiveSize(items),
       convertedImages,
-      convertedVideos: files.filter((file) => file.type.startsWith("video/")).length,
+      convertedVideos: videoBackends.length,
+      webCodecsVideos: videoBackends.filter((backend) => backend === "webcodecs").length,
+      ffmpegVideos: videoBackends.filter((backend) => backend === "ffmpeg-wasm").length,
     },
   };
 }

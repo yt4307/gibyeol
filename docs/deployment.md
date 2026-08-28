@@ -68,7 +68,7 @@ Next.js에 노출되는 변수에는 private key나 provider write/admin credent
 
 - GitHub Actions에서 frozen lockfile로 lint/typecheck/test/build 후 `frontend/out`만 Pages artifact로 배포한다.
 - repository Pages subpath를 사용하면 build-time `basePath`를 적용한다. custom domain root와 같은 artifact를 공유하지 않는다.
-- 영상 선택 시에만 약 31 MiB의 자체 호스팅 ffmpeg.wasm 싱글스레드 core를 지연 로딩한다. GitHub Pages에서는 COOP/COEP 응답 헤더를 설정할 수 없으므로 멀티스레드 core를 사용하지 않는다.
+- 영상은 지원되는 브라우저에서 WebCodecs+Mediabunny로 우선 변환한다. 입력 decode 또는 VP8 encode가 지원되지 않거나 실행에 실패할 때만 약 31 MiB의 자체 호스팅 ffmpeg.wasm 싱글스레드 core를 지연 로딩한다. GitHub Pages에서는 COOP/COEP 응답 헤더를 설정할 수 없으므로 멀티스레드 core를 사용하지 않는다.
 - Pull request는 build만 수행하며 production deploy 권한을 받지 않는다.
 - custom domain은 Pages 설정, DNS, HTTPS 강제를 함께 검증한다.
 - Pages에는 secret, PHP, server rewrite/proxy, runtime 환경변수가 없다고 가정한다.
