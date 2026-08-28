@@ -71,8 +71,11 @@ FTP 계정이 `html`만 노출하는 경우 `./scripts/build-dothome-artifact.sh
 
 루트 `index.php`는 `/api/v1/*` 요청만 전달받는 공개 진입점이며 `_gibyeol`은 Apache 2.4와 2.2
 호환 규칙으로 모든 웹 접근을 거부한다.
-생성기는 production dependency만 설치하고 dev dependency, test, 기존 환경파일과 cache를 제외한다.
-재생성 시 기존 staging 교체가 필요하므로 검토 후에만 `--force`를 사용한다.
+생성기는 production dependency만 설치하고 dev dependency, test, cache를 제외한다. `.env`는 커밋 가능한
+공통 기본값이며 artifact를 만들 때마다 `infra/dothome/app.env`에서 새로 생성된다. 실제 DB 접속 정보와
+암호 키는 Git에서 제외된 `_gibyeol/.env.local`에 기록하며 Symfony가 이 값을 `.env`보다 우선 적용한다.
+재생성 시 기존 `.env.local`은 새 artifact에 보존되지만 별도의 안전한 위치에도 백업한다. 기존 staging
+교체가 필요하므로 검토 후에만 `--force`를 사용한다.
 
 ## FTP 전용 배포 순서
 

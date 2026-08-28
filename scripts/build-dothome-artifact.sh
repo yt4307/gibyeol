@@ -72,9 +72,21 @@ cp "${REPOSITORY_ROOT}/infra/dothome/public-index.php" "${BUILD_ROOT}/html/index
 cp "${REPOSITORY_ROOT}/infra/dothome/app.env" "${BUILD_ROOT}/html/_gibyeol/.env"
 cp "${REPOSITORY_ROOT}/infra/dothome/env.local.example" "${BUILD_ROOT}/html/_gibyeol/.env.local.example"
 
+ENV_LOCAL_PRESERVED=false
+if [ -f "${STAGING_HTML}/_gibyeol/.env.local" ]; then
+    cp -p \
+        "${STAGING_HTML}/_gibyeol/.env.local" \
+        "${BUILD_ROOT}/html/_gibyeol/.env.local"
+    ENV_LOCAL_PRESERVED=true
+fi
+
 rm -rf -- "${STAGING_HTML}"
 mkdir -p "${STAGING_ROOT}"
 mv "${BUILD_ROOT}/html" "${STAGING_HTML}"
 
 echo "Dothome artifact ready: ${STAGING_HTML}"
-echo "Create ${STAGING_HTML}/_gibyeol/.env.local before upload."
+if [ "${ENV_LOCAL_PRESERVED}" = true ]; then
+    echo "Preserved existing ${STAGING_HTML}/_gibyeol/.env.local."
+else
+    echo "Create ${STAGING_HTML}/_gibyeol/.env.local before upload."
+fi
