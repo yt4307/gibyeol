@@ -32,7 +32,7 @@ services:
       - '../src/Kernel.php'
 
   App\Http\HttpClient: '@App\Http\CurlHttpClient'
-  App\Auth\SiweVerifier: '@App\Auth\ZbkmSiweVerifier'
+  App\Auth\SiweVerifier: '@App\Auth\RpcSiweVerifier'
   App\Email\EmailSender: '@App\Email\ConfiguredEmailSender'
   App\Recovery\MailboxKeyVerifier: '@App\Recovery\RpcMailboxKeyVerifier'
   App\Operations\ChainIndex: '@App\Operations\RpcChainIndex'

@@ -1,8 +1,8 @@
 FROM php:8.4-apache
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git libgmp-dev libicu-dev libzip-dev unzip \
-    && docker-php-ext-install gmp intl opcache pdo_mysql \
+    && apt-get install -y --no-install-recommends git libicu-dev libzip-dev unzip \
+    && docker-php-ext-install intl opcache pdo_mysql \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 

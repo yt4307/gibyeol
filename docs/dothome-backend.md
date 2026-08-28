@@ -25,8 +25,9 @@ PHP web root에는 `backend/public`만 노출한다. package, `.env`, private ke
 
 2026-08-28 대상 계정의 사전 점검 결과는 PHP 8.4.24, `pdo_mysql`, `sodium`, `curl` 지원,
 256 MiB request body 제한이다. `allow_url_fopen`은 비활성화되어 있으므로 outbound RPC와 Resend
-요청은 공용 cURL 전송 계층을 사용한다. `gmp` 확장은 제공되지 않아 현재 SIWE 서명 검증의 배포
-차단 조건으로 남아 있다.
+요청은 공용 cURL 전송 계층을 사용한다. 제공되지 않는 `gmp` 대신 EIP-191 해시를 계산하고 Base
+RPC에서 EVM `ECRECOVER` precompile을 `eth_call`하는 방식으로 EOA SIWE 서명을 검증한다. 따라서
+로그인 시 primary 또는 fallback RPC 중 하나는 정상이어야 한다.
 
 정상 GBYL을 서비스 종료까지 보존할 용량이 없으면 닷홈 filesystem을 production package 저장소로 확정하지 않는다. scheduler가 없다면 GitHub Actions 등 외부 runner를 사용할 수 있지만, recovery private key와 DB를 외부 runner로 반출하지 않는 구조여야 한다.
 

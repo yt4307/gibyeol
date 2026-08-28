@@ -8,7 +8,6 @@ header('X-Content-Type-Options: nosniff');
 
 $requiredExtensions = [
     'ctype',
-    'gmp',
     'iconv',
     'mbstring',
     'openssl',

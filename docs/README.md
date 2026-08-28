@@ -23,13 +23,14 @@
 | [development.md](development.md) | 모노레포 로컬 개발 환경과 명령어 |
 | [github-pages.md](github-pages.md) | GitHub Pages 정적 프론트 배포와 검증 절차 |
 | [dothome-backend.md](dothome-backend.md) | 닷홈 PHP/API·package 저장소 배포 경계 |
+| [adr-002-gmp-free-siwe-verification.md](adr-002-gmp-free-siwe-verification.md) | GMP 없는 EOA SIWE 검증 결정 |
 
 ## Freeze 전에 반드시 닫을 항목
 
 1. 실제 quicknet을 사용한 `tlock-js`/`drand-client` 버전 조합과 wire format을 PoC로 검증하고 정확한 버전을 고정한다.
 2. Base Sepolia와 Mainnet의 배포 주소, 배포 트랜잭션, `UNLOCK_ROUND`를 기록한다.
 3. `timeForRound(UNLOCK_ROUND) >= 1798124400`이고 바로 전 round의 시간이 그보다 작음을 자동 테스트로 증명한다.
-4. SIWE 라이브러리를 선정·고정하고 공식 EIP-4361 test vector를 통과시킨다.
+4. 내부 SIWE profile과 RPC ECRECOVER 구현을 공식 EIP-4361 test vector 및 Base testnet에서 검증한다.
 5. 브라우저별 Passkey PRF 및 MediaRecorder codec 호환성 표를 실제 기기에서 확정한다.
 6. 원 기획에서 byte-level 표현이 없던 아래 FC 보완값을 승인하거나 수정한다.
 

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use Doctrine\DBAL\Connection;
-use Zbkm\Siwe\SiweMessage;
-use Zbkm\Siwe\SiweMessageParams;
 
 final class AuthService
 {
@@ -40,7 +38,7 @@ final class AuthService
         $nonce = bin2hex(random_bytes(16));
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $expiresAt = $now->modify('+'.self::NONCE_TTL_SECONDS.' seconds');
-        $params = new SiweMessageParams(
+        $message = SiweMessage::create(
             address: $walletAddress,
             chainId: $this->chainId,
             domain: $this->domain,
@@ -60,7 +58,7 @@ final class AuthService
         ]);
 
         return [
-            'message' => SiweMessage::create($params),
+            'message' => $message,
             'nonce' => $nonce,
             'expiresAt' => $expiresAt->format(\DateTimeInterface::ATOM),
         ];
