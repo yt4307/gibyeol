@@ -83,6 +83,10 @@ FTP 계정이 `html`만 노출하는 경우 `./scripts/build-dothome-artifact.sh
 2. 브라우저에서 `/gibyeol-preflight.php`를 열어 PHP 8.4, 필수 확장, 쓰기 및 외부 HTTP 전송 조건을 확인한다.
 3. 결과를 기록한 직후 원격의 `gibyeol-preflight.php`를 삭제한다.
 4. 점검을 통과한 환경에서만 production dependency와 보호 규칙을 포함한 전체 artifact를 업로드한다.
+5. `./scripts/stage-dothome-migration.sh`로 일회성 실행기와 토큰을 생성하여 각각 웹 루트와
+   `_gibyeol/var`의 동일 경로에 업로드한다.
+6. `/gibyeol-migrate.php`의 POST form에 로컬 토큰을 입력하여 migration 성공과 서버 토큰 삭제를 확인한다.
+7. 성공 직후 원격과 로컬의 `gibyeol-migrate.php`, `migration-token`, `migration.lock`을 모두 삭제한다.
 
 점검 파일은 `phpinfo()`를 호출하지 않으며 비밀값과 서버 절대 경로를 출력하지 않는다. 다만 공개
 상태로 계속 둘 이유가 없으므로 전체 artifact에는 포함하지 않는다.
