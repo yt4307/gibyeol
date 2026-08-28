@@ -18,17 +18,18 @@ $requiredExtensions = [
 ];
 
 $extensions = [];
-foreach ($requiredExtensions as $extension) {
+foreach ([...$requiredExtensions, 'curl'] as $extension) {
     $extensions[$extension] = extension_loaded($extension);
 }
 
 $phpVersionSupported = version_compare(PHP_VERSION, '8.4.0', '>=')
     && version_compare(PHP_VERSION, '8.5.0', '<');
 $allowUrlFopen = filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOL);
+$outboundHttpSupported = $allowUrlFopen || $extensions['curl'];
 $temporaryDirectoryWritable = is_writable(sys_get_temp_dir());
 $ready = $phpVersionSupported
-    && !in_array(false, $extensions, true)
-    && $allowUrlFopen
+    && !in_array(false, array_intersect_key($extensions, array_flip($requiredExtensions)), true)
+    && $outboundHttpSupported
     && $temporaryDirectoryWritable;
 
 echo json_encode([
@@ -40,6 +41,7 @@ echo json_encode([
     'extensions' => $extensions,
     'runtime' => [
         'allow_url_fopen' => $allowUrlFopen,
+        'outbound_http_transport_available' => $outboundHttpSupported,
         'temporary_directory_writable' => $temporaryDirectoryWritable,
         'memory_limit' => ini_get('memory_limit'),
         'max_execution_time' => ini_get('max_execution_time'),
