@@ -15,4 +15,5 @@ features/
 - 표현 컴포넌트는 가능한 한 데이터 접근 없이 props로 렌더링한다.
 - 독립 렌더링할 수 있는 component와 flow에는 같은 디렉터리에 CSF story를 둔다.
 - 여러 feature가 실제로 공유하기 전에는 성급하게 공용 디렉터리로 옮기지 않는다.
+- 여러 feature가 사용하는 체인 클라이언트와 외부 연동 코드는 `src/infrastructure`에 둔다.
 - protocol 암호화와 wire format 로직은 feature가 아니라 `packages/protocol`에 둔다.

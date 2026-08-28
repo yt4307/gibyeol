@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { apiBaseUrl, browserProvider, chainId } from "@features/data/blockchain/config";
+import { apiBaseUrl, browserProvider, chainId } from "@/infrastructure/blockchain/config";
 import { useAppStore } from "@/stores/use-app-store";
 
 export function useWalletSession() {

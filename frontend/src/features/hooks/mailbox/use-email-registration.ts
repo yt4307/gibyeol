@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiBaseUrl } from "@features/data/blockchain/config";
+import { apiBaseUrl } from "@/infrastructure/blockchain/config";
 
 export function useEmailRegistration(address?: string) {
   const [verifiedAddress, setVerifiedAddress] = useState<string | null>(null);

@@ -3,8 +3,8 @@
 import { bytesToHex, createRecoveryEnvelope, hexToBytes } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
 import { toHex } from "viem";
-import { contractAbi, contractAddress, publicClient, walletClient } from "@features/data/blockchain/config";
-import { createQuicknetTlock } from "@features/data/blockchain/quicknet-tlock";
+import { contractAbi, contractAddress, publicClient, walletClient } from "@/infrastructure/blockchain/config";
+import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
 import { createPasskeyMailbox } from "@features/data/mailbox/passkey";
 
 export function mailboxEnvelopeStorageKey(address: string, keyId: number) {

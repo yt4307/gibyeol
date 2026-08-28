@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   preprocessMediaFiles: vi.fn(),
 }));
 
-vi.mock("@features/data/blockchain/config", () => ({
+vi.mock("@/infrastructure/blockchain/config", () => ({
   apiBaseUrl: "https://api.example.test/api/v1",
   chainId: 84_532,
   contractAbi: [],
@@ -31,7 +31,7 @@ vi.mock("@features/data/blockchain/config", () => ({
   walletClient: () => ({ writeContract: mocks.writeContract }),
 }));
 
-vi.mock("@features/data/blockchain/quicknet-tlock", () => ({
+vi.mock("@/infrastructure/blockchain/quicknet-tlock", () => ({
   createQuicknetTlock: () => ({ encrypt: vi.fn(), decrypt: vi.fn() }),
 }));
 

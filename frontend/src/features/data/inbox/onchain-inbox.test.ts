@@ -4,7 +4,7 @@ import type { InboxLetter } from "./inbox";
 
 const mocks = vi.hoisted(() => ({ getLogs: vi.fn(), getTransaction: vi.fn() }));
 
-vi.mock("@features/data/blockchain/config", async () => {
+vi.mock("@/infrastructure/blockchain/config", async () => {
   const { parseAbi } = await import("viem");
   return {
     contractAddress: "0x3333333333333333333333333333333333333333",

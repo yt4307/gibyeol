@@ -12,8 +12,8 @@ import {
 } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
 import { isAddress, parseAbiItem, toHex } from "viem";
-import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@features/data/blockchain/config";
-import { createQuicknetTlock } from "@features/data/blockchain/quicknet-tlock";
+import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@/infrastructure/blockchain/config";
+import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
 import { preprocessMediaFiles, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
 import { draftStorageKey, emptyDraft, type SendDraft } from "@features/data/send/send-draft";
 

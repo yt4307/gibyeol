@@ -1,5 +1,5 @@
 import { decodeFunctionData, parseAbiItem } from "viem";
-import { contractAbi, contractAddress, deploymentBlock, publicClient } from "@features/data/blockchain/config";
+import { contractAbi, contractAddress, deploymentBlock, publicClient } from "@/infrastructure/blockchain/config";
 import type { InboxLetter } from "./inbox";
 
 const letterEvent = parseAbiItem("event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)");

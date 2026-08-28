@@ -13,8 +13,8 @@ import {
   type MailboxKeyPair,
 } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
-import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient } from "@features/data/blockchain/config";
-import { createQuicknetTlock } from "@features/data/blockchain/quicknet-tlock";
+import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient } from "@/infrastructure/blockchain/config";
+import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
 import { openPasskeyMailbox } from "@features/data/mailbox/passkey";
 import type { InboxLetter, OpenedLetter } from "@features/data/inbox/inbox";
 import { loadInbox, loadLetterCalldata, loadMailboxEnvelopes } from "@features/data/inbox/onchain-inbox";
