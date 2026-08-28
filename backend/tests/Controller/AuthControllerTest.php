@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
 
 final class AuthControllerTest extends WebTestCase
 {
@@ -32,6 +34,45 @@ final class AuthControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(401);
         self::assertStringContainsString('SIWE_INVALID', (string) $client->getResponse()->getContent());
+    }
+
+    public function testSessionRejectsMissingCookie(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/api/v1/auth/session', server: ['HTTP_ORIGIN' => self::ORIGIN]);
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertStringContainsString('AUTH_REQUIRED', (string) $client->getResponse()->getContent());
+    }
+
+    public function testSessionRestoresAuthenticatedWallet(): void
+    {
+        $client = self::createClient();
+        $token = str_repeat('a', 43);
+        $walletAddress = '0x1111111111111111111111111111111111111111';
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertInstanceOf(Connection::class, $connection);
+        $connection->delete('sessions', ['token_hash' => hash('sha256', $token, true)]);
+        $connection->insert('sessions', [
+            'token_hash' => hash('sha256', $token, true),
+            'wallet_address' => $walletAddress,
+            'expires_at' => '2099-12-31 23:59:59.000000',
+            'created_at' => '2026-08-29 00:00:00.000000',
+            'last_seen_at' => '2026-08-29 00:00:00.000000',
+        ]);
+        $client->getCookieJar()->set(new Cookie('gibyeol_session', $token, null, '/', '', false, true));
+
+        try {
+            $client->request('GET', '/api/v1/auth/session', server: ['HTTP_ORIGIN' => self::ORIGIN]);
+
+            self::assertResponseIsSuccessful();
+            self::assertJsonStringEqualsJsonString(
+                json_encode(['walletAddress' => $walletAddress], JSON_THROW_ON_ERROR),
+                (string) $client->getResponse()->getContent(),
+            );
+        } finally {
+            $connection->delete('sessions', ['token_hash' => hash('sha256', $token, true)]);
+        }
     }
 
     public function testChallengeRateLimitRejectsEleventhRequestFromSameClient(): void

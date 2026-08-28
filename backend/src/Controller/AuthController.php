@@ -70,6 +70,17 @@ final class AuthController
         }
     }
 
+    #[Route('/api/v1/auth/session', name: 'api_v1_auth_session', methods: ['GET'])]
+    public function session(Request $request): JsonResponse
+    {
+        $walletAddress = $request->attributes->get('_wallet_address');
+        if (!is_string($walletAddress)) {
+            return $this->error('AUTH_REQUIRED', 'A valid session is required.', 401);
+        }
+
+        return new JsonResponse(['walletAddress' => $walletAddress]);
+    }
+
     #[Route('/api/v1/auth/logout', name: 'api_v1_auth_logout', methods: ['POST'])]
     public function logout(Request $request, AuthService $auth): JsonResponse
     {
@@ -83,6 +94,7 @@ final class AuthController
             true,
             true,
             $this->sessionSameSite,
+            true,
         );
         return $response;
     }
@@ -95,7 +107,8 @@ final class AuthController
             ->withPath('/')
             ->withSecure(true)
             ->withHttpOnly(true)
-            ->withSameSite($this->sessionSameSite);
+            ->withSameSite($this->sessionSameSite)
+            ->withPartitioned();
     }
 
     private function error(string $code, string $message, int $status): JsonResponse

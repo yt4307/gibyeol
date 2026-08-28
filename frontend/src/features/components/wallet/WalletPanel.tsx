@@ -5,21 +5,24 @@ import styled from "@emotion/styled";
 export type WalletPanelProps = {
   address?: string;
   busy?: boolean;
+  restoring?: boolean;
   error?: string | null;
   onConnect: () => void;
 };
 
-export function WalletPanel({ address, busy = false, error, onConnect }: WalletPanelProps) {
+export function WalletPanel({ address, busy = false, restoring = false, error, onConnect }: WalletPanelProps) {
   return (
     <Panel>
       <div>
         <Label>WALLET &amp; SIWE</Label>
-        <Value>{address ? `${address.slice(0, 8)}…${address.slice(-6)}` : "지갑 연결이 필요해요"}</Value>
+        <Value>{address
+          ? `${address.slice(0, 8)}…${address.slice(-6)}`
+          : restoring ? "로그인 상태를 불러오는 중이에요" : "지갑 연결이 필요해요"}</Value>
       </div>
-      <Button type="button" onClick={onConnect} disabled={busy || Boolean(address)}>
-        {address ? "인증됨" : busy ? "서명 확인 중…" : "지갑 연결"}
+      <Button type="button" onClick={onConnect} disabled={busy || restoring || Boolean(address)}>
+        {restoring ? "세션 확인 중…" : address ? "인증됨" : busy ? "서명 확인 중…" : "지갑 연결"}
       </Button>
-      {!address && <HelpText>모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.</HelpText>}
+      {!address && !restoring && <HelpText>모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.</HelpText>}
       {error && <ErrorText role="alert">{error}</ErrorText>}
     </Panel>
   );

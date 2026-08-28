@@ -1,15 +1,110 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiBaseUrl, chainId } from "@/infrastructure/blockchain/config";
-import { connectWalletProvider } from "@/infrastructure/blockchain/wallet-provider";
+import {
+  activeWalletProvider,
+  clearActiveWalletProvider,
+  connectWalletProvider,
+} from "@/infrastructure/blockchain/wallet-provider";
 import { useAppStore } from "@/stores/use-app-store";
+
+type SessionResponse = { walletAddress: `0x${string}` };
+
+function isWalletAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value);
+}
+
+type EventedWalletProvider = ReturnType<typeof activeWalletProvider> & {
+  on?: (event: "accountsChanged", listener: (accounts: unknown) => void) => void;
+  removeListener?: (event: "accountsChanged", listener: (accounts: unknown) => void) => void;
+};
 
 export function useWalletSession() {
   const session = useAppStore((state) => state.walletSession);
   const setSession = useAppStore((state) => state.setWalletSession);
+  const authenticationStatus = useAppStore((state) => state.authenticationStatus);
+  const setAuthenticationStatus = useAppStore((state) => state.setAuthenticationStatus);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const forgetSession = useCallback((notifyServer = false) => {
+    setSession(null);
+    setAuthenticationStatus("anonymous");
+    clearActiveWalletProvider();
+    if (notifyServer) {
+      void fetch(`${apiBaseUrl}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => undefined);
+    }
+  }, [setAuthenticationStatus, setSession]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restore = async () => {
+      await useAppStore.persist.rehydrate();
+      if (cancelled) return;
+
+      const cachedSession = useAppStore.getState().walletSession;
+      if (!cachedSession) {
+        setAuthenticationStatus("anonymous");
+        return;
+      }
+
+      setAuthenticationStatus("restoring");
+      try {
+        const response = await fetch(`${apiBaseUrl}/auth/session`, { credentials: "include" });
+        if (cancelled) return;
+        if (!response.ok) {
+          forgetSession();
+          return;
+        }
+        const restored = (await response.json()) as SessionResponse;
+        if (cancelled) return;
+        if (!isWalletAddress(restored.walletAddress)) throw new Error("세션 응답이 올바르지 않습니다.");
+        const address = restored.walletAddress.toLowerCase() as `0x${string}`;
+        const provider = activeWalletProvider();
+        const accounts = provider
+          ? await provider.request({ method: "eth_accounts" }).catch(() => [])
+          : [];
+        if (cancelled) return;
+        const connectedAddress = Array.isArray(accounts) && isWalletAddress(accounts[0])
+          ? accounts[0].toLowerCase()
+          : null;
+        if (connectedAddress && connectedAddress !== address) {
+          forgetSession(true);
+          return;
+        }
+        setSession({ address, authenticated: true });
+        setAuthenticationStatus("authenticated");
+      } catch {
+        if (!cancelled) {
+          forgetSession();
+          setError("저장된 로그인 상태를 확인하지 못했습니다.");
+        }
+      }
+    };
+
+    void restore();
+    return () => { cancelled = true; };
+  }, [forgetSession, setAuthenticationStatus, setSession]);
+
+  useEffect(() => {
+    if (!session) return;
+    const provider = activeWalletProvider() as EventedWalletProvider;
+    if (!provider?.on) return;
+
+    const handleAccountsChanged = (accounts: unknown) => {
+      const address = Array.isArray(accounts) && isWalletAddress(accounts[0])
+        ? accounts[0].toLowerCase()
+        : null;
+      if (address !== session.address) forgetSession(true);
+    };
+    provider.on("accountsChanged", handleAccountsChanged);
+    return () => provider.removeListener?.("accountsChanged", handleAccountsChanged);
+  }, [forgetSession, session]);
 
   const connect = useCallback(async () => {
     setBusy(true);
@@ -47,6 +142,7 @@ export function useWalletSession() {
       if (!verifyResponse.ok) throw new Error("지갑 서명을 확인하지 못했습니다.");
       const next = { address, authenticated: true };
       setSession(next);
+      setAuthenticationStatus("authenticated");
       return next;
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "지갑 연결에 실패했습니다.";
@@ -55,7 +151,14 @@ export function useWalletSession() {
     } finally {
       setBusy(false);
     }
-  }, [setSession]);
+  }, [setAuthenticationStatus, setSession]);
 
-  return { session, error, busy, connect };
+  return {
+    session,
+    error,
+    busy,
+    restoring: authenticationStatus === "restoring",
+    authenticated: authenticationStatus === "authenticated",
+    connect,
+  };
 }

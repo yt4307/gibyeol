@@ -18,16 +18,17 @@ export type PostOfficeFlowProps = {
 
 export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
   const wallet = useWalletSession();
-  const mailbox = useMailboxOnboarding(wallet.session?.address);
-  const email = useEmailRegistration(wallet.session?.address);
+  const authenticatedAddress = wallet.authenticated ? wallet.session?.address : undefined;
+  const mailbox = useMailboxOnboarding(authenticatedAddress);
+  const email = useEmailRegistration(authenticatedAddress);
   return <Shell>
     <Top><BrandWordmark /><DateMark>CHRISTMAS POST · 2026</DateMark></Top>
     <Intro><Eyebrow>미래로 보내는 암호 편지</Eyebrow><h1>오늘의 마음을<br />약속한 날까지.</h1><p>지갑으로 본인을 확인하고, Passkey로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p></Intro>
     <Workspace>
-      <WalletPanel address={wallet.session?.address} busy={wallet.busy} error={wallet.error} onConnect={() => { void wallet.connect(); }} />
-      {wallet.session && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
+      <WalletPanel address={wallet.session?.address} busy={wallet.busy} restoring={wallet.restoring} error={wallet.error} onConnect={() => { void wallet.connect(); }} />
+      {authenticatedAddress && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
       {mailbox.keyId && mailbox.keyId > 0 && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
-      {mailbox.keyId && mailbox.keyId > 0 && email.verified && wallet.session ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={wallet.session.address} /> : <InboxFlow address={wallet.session.address} />}</> : wallet.session && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
+      {mailbox.keyId && mailbox.keyId > 0 && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
     </Workspace>
   </Shell>;
 }

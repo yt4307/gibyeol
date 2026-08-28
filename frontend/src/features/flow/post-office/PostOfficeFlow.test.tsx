@@ -57,7 +57,9 @@ function setEmailState(verified: boolean, codeSent = false) {
 describe("PostOfficeFlow integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useAppStore.setState({ walletSession: null });
+    window.localStorage.clear();
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
+    useAppStore.setState({ walletSession: null, authenticationStatus: "anonymous" });
     setMailboxState(null);
     setEmailState(false);
   });
@@ -77,7 +79,7 @@ describe("PostOfficeFlow integration", () => {
   });
 
   it("registers a mailbox before exposing email verification", () => {
-    useAppStore.setState({ walletSession: { address, authenticated: true } });
+    useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
     render(<PostOfficeFlow />);
 
     fireEvent.click(screen.getByRole("button", { name: "메일박스 만들기" }));
@@ -89,7 +91,7 @@ describe("PostOfficeFlow integration", () => {
   });
 
   it("connects the email form callbacks while keeping letter flows gated", () => {
-    useAppStore.setState({ walletSession: { address, authenticated: true } });
+    useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
     setMailboxState(2);
     render(<PostOfficeFlow />);
 
@@ -105,7 +107,7 @@ describe("PostOfficeFlow integration", () => {
   });
 
   it("selects the routed flow and preserves the wallet session across remounts", () => {
-    useAppStore.setState({ walletSession: { address, authenticated: true } });
+    useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
     setMailboxState(2);
     setEmailState(true);
 
