@@ -2,12 +2,13 @@
 
 ## 상태
 
-Accepted for repository Pages deployment.
+Accepted for custom-domain Pages deployment.
 
 ## 결정
 
-- Web은 `https://yt4307.github.io/gibyeol/`에서 제공한다.
-- 브라우저 origin과 SIWE domain은 path를 제외한 `https://yt4307.github.io`다.
+- Web은 `https://www.gibyeol.kro.kr/`에서 제공한다.
+- 브라우저 origin과 SIWE domain은 `https://www.gibyeol.kro.kr`이다.
+- Custom domain은 root에서 서비스하므로 Pages artifact에 `basePath`를 넣지 않는다.
 - API는 별도 HTTPS origin을 사용하므로 cross-origin 요청으로 취급한다.
 - API는 정확히 하나의 `WEB_ORIGIN`만 허용하고 credentialed CORS에 wildcard를 쓰지 않는다.
 - 브라우저의 unsafe method 요청은 정확한 `Origin` 헤더가 없거나 다르면 거부한다.

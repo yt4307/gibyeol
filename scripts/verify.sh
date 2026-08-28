@@ -9,6 +9,7 @@ pnpm lint:frontend
 pnpm typecheck
 pnpm test
 pnpm build:frontend
+pnpm --filter @gibyeol/frontend verify:pages-artifact
 pnpm build:storybook
 node scripts/validate-deployment-manifest.mjs docs/deployment-manifest.example.json
 

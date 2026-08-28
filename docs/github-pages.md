@@ -17,15 +17,15 @@ Next.js static export를 GitHub Pages에서 제공한다. Pages는 HTML/CSS/JS�
 
 `basePath`는 client bundle에 포함되는 build-time 값이다. 한 artifact를 root와 subpath에 동시에 배포하지 않는다. URL 구조가 결정되기 전에는 production artifact를 만들지 않는다.
 
-현재 production 후보는 repository Pages 방식으로 고정한다.
+현재 production 후보는 `www.gibyeol.kro.kr` custom domain root 방식으로 고정한다.
 
 | 값 | 현재 설정 |
 |---|---|
-| `WEB_ORIGIN` | `https://yt4307.github.io` |
-| `PAGES_BASE_PATH` | `/gibyeol` |
-| 공개 URL | `https://yt4307.github.io/gibyeol/` |
+| `WEB_ORIGIN` | `https://www.gibyeol.kro.kr` |
+| `PAGES_BASE_PATH` | 빈 값 |
+| 공개 URL | `https://www.gibyeol.kro.kr/` |
 
-custom domain으로 전환할 때는 workflow의 두 값을 함께 바꾸고 새 artifact를 생성한다.
+repository Pages 경로로 되돌릴 때는 workflow의 `WEB_ORIGIN`과 `PAGES_BASE_PATH`를 함께 바꾸고 새 artifact를 생성한다.
 
 ## GitHub Actions 흐름
 
@@ -34,8 +34,9 @@ custom domain으로 전환할 때는 workflow의 두 값을 함께 바꾸고 새
 3. 고정된 Node/pnpm 버전과 frozen lockfile로 install한다.
 4. lint, typecheck, test를 통과한다.
 5. production public 환경값으로 `next build`를 실행한다.
-6. `frontend/out/`을 Pages artifact로 upload한다.
-7. GitHub Pages environment에 deploy한다.
+6. `/send/`, `/inbox/`, `/_next/`가 custom domain root 기준인지 검증한다.
+7. `frontend/out/`을 Pages artifact로 upload한다.
+8. GitHub Pages environment에 deploy한다.
 
 Workflow에는 최소 `pages: write`, `id-token: write`, `contents: read`만 부여한다. Pull request에서는 build까지만 수행하고 production deploy는 하지 않는다.
 

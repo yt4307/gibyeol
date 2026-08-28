@@ -1,7 +1,7 @@
 {
   "environment": "staging",
-  "webOrigin": "https://yt4307.github.io",
-  "pagesBasePath": "/gibyeol",
+  "webOrigin": "https://www.gibyeol.kro.kr",
+  "pagesBasePath": "",
   "apiOrigin": "",
   "chainId": 84532,
   "contractAddress": "",

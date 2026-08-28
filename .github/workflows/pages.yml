@@ -45,16 +45,19 @@ jobs:
           pnpm typecheck
           pnpm test
 
-      - name: repository Pages 산출물 생성
+      - name: custom domain Pages 산출물 생성
         env:
-          PAGES_BASE_PATH: /gibyeol
-          NEXT_PUBLIC_WEB_ORIGIN: https://yt4307.github.io
+          PAGES_BASE_PATH: ""
+          NEXT_PUBLIC_WEB_ORIGIN: https://www.gibyeol.kro.kr
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
           NEXT_PUBLIC_CHAIN_ID: ${{ vars.NEXT_PUBLIC_CHAIN_ID }}
           NEXT_PUBLIC_RPC_URL: ${{ vars.NEXT_PUBLIC_RPC_URL }}
           NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS: ${{ vars.NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS }}
           NEXT_PUBLIC_DEPLOYMENT_BLOCK: ${{ vars.NEXT_PUBLIC_DEPLOYMENT_BLOCK }}
         run: pnpm build:frontend
+
+      - name: custom domain root 경로 검증
+        run: pnpm --filter @gibyeol/frontend verify:pages-artifact
 
       - name: Pages 산출물 업로드
         uses: actions/upload-pages-artifact@v4
