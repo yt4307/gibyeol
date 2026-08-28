@@ -1,13 +1,13 @@
 # Frontend features
 
-사용자 기능별 코드는 이 디렉터리에 둔다.
+사용자 기능 코드는 역할별 상위 디렉터리 아래에 기능 단위로 나눠 둔다.
 
 ```text
-features/{feature}/
-├─ components/  화면 조각과 표현 컴포넌트
-├─ data/        정적 문구, fixture, feature 전용 모델
-├─ flow/        page에서 호출하는 화면 조립과 단계 전환
-└─ hooks/       브라우저 상태와 재사용 가능한 상호작용 로직
+features/
+├─ components/{feature}/  화면 조각과 표현 컴포넌트
+├─ data/{feature}/        정적 문구, fixture, feature 전용 모델
+├─ flow/{feature}/        page에서 호출하는 화면 조립과 단계 전환
+└─ hooks/{feature}/       브라우저 상태와 재사용 가능한 상호작용 로직
 ```
 
 - `src/app/**/page.tsx`는 route entry 역할만 하고 feature flow를 렌더링한다.
