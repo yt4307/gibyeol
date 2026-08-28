@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import EmotionRegistry from "./EmotionRegistry";
 import GlobalStyles from "./GlobalStyles";
@@ -7,7 +7,20 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "기별",
-  description: "",
+  description: "오늘의 마음을 약속한 날까지 안전하게 봉인하는 암호 편지 서비스",
+  applicationName: "기별",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "기별",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f7f3ea",
 };
 
 export default function RootLayout({
