@@ -1,0 +1,29 @@
+{
+  "environment": "staging",
+  "webOrigin": "https://www.gibyeol.kro.kr",
+  "pagesBasePath": "",
+  "apiOrigin": "https://yeonsiny19.dothome.co.kr",
+  "chainId": 84532,
+  "deployer": "0x3072243A09f4cc410d9D105605Ff8b9C9AcD10e3",
+  "contractAddress": "0x33d4123ac88792CFe81A8Ae818760C8008d29747",
+  "deploymentTxHash": "0x22a5e42433d4569cef0337176153dbb93c413a9165d4196ce8dfe2423c0349ea",
+  "deploymentBlock": 46079415,
+  "runtimeCodeHash": "0x359cd5ba0b77a2167cc17d4621956b522f9de0183136f7da2724339c7127dd8c",
+  "drandChainHash": "52db9ba70e0cc0f6eaf7803dd07447a1f5477735fd3f661792ba94600c84e971",
+  "recoveryPublicKey": "3fcb1ac18e8bd28bcd7c0897c8d8ad6e0404bfa01d7946f71be17e6f3897f643",
+  "unlockAt": 1798124400,
+  "unlockRound": 35107012,
+  "frontendCommit": "ff9ad502efbbdf24168d22930cb37c64bb58a6c5",
+  "backendCommit": "ff9ad502efbbdf24168d22930cb37c64bb58a6c5",
+  "deployedAt": "2026-08-28T14:25:18.000Z",
+  "explorerAddressUrl": "https://base-sepolia.blockscout.com/address/0x33d4123ac88792CFe81A8Ae818760C8008d29747",
+  "explorerTransactionUrl": "https://base-sepolia.blockscout.com/tx/0x22a5e42433d4569cef0337176153dbb93c413a9165d4196ce8dfe2423c0349ea",
+  "explorerVerificationUrl": "https://base-sepolia.blockscout.com/address/0x33d4123ac88792CFe81A8Ae818760C8008d29747?tab=contract",
+  "pagesUrl": "https://www.gibyeol.kro.kr",
+  "approvals": [],
+  "owners": {
+    "monitoring": "",
+    "backup": "",
+    "incident": ""
+  }
+}
