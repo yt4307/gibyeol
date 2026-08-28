@@ -25,6 +25,9 @@ services:
       $contractDeploymentBlock: '%env(int:CONTRACT_DEPLOYMENT_BLOCK)%'
       $safeBlockConfirmations: '%env(int:SAFE_BLOCK_CONFIRMATIONS)%'
       $orphanMinAgeSeconds: '%env(int:ORPHAN_MIN_AGE_SECONDS)%'
+      $appSecret: '%env(APP_SECRET)%'
+      $authChallengeLimiter: '@limiter.auth_challenge'
+      $authVerifyLimiter: '@limiter.auth_verify'
 
   App\:
     resource: '../src/'

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Auth\AuthException;
+use App\Auth\AuthRequestLimiter;
 use App\Auth\AuthService;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimit;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class AuthController
@@ -17,12 +19,17 @@ final class AuthController
     public function __construct(
         private readonly string $sessionCookieName,
         private readonly string $sessionSameSite,
+        private readonly AuthRequestLimiter $requestLimiter,
     ) {
     }
 
     #[Route('/api/v1/auth/challenge', name: 'api_v1_auth_challenge', methods: ['POST'])]
     public function challenge(Request $request, AuthService $auth): JsonResponse
     {
+        if (null !== $limited = $this->rateLimited($this->requestLimiter->consumeChallenge($request))) {
+            return $limited;
+        }
+
         try {
             $body = $request->toArray();
             return new JsonResponse($auth->challenge(
@@ -41,6 +48,10 @@ final class AuthController
     #[Route('/api/v1/auth/verify', name: 'api_v1_auth_verify', methods: ['POST'])]
     public function verify(Request $request, AuthService $auth): JsonResponse
     {
+        if (null !== $limited = $this->rateLimited($this->requestLimiter->consumeVerify($request))) {
+            return $limited;
+        }
+
         try {
             $body = $request->toArray();
             $result = $auth->verify(
@@ -90,5 +101,18 @@ final class AuthController
     private function error(string $code, string $message, int $status): JsonResponse
     {
         return new JsonResponse(['error' => ['code' => $code, 'message' => $message]], $status);
+    }
+
+    private function rateLimited(RateLimit $limit): ?JsonResponse
+    {
+        if ($limit->isAccepted()) {
+            return null;
+        }
+
+        $response = $this->error('AUTH_RATE_LIMITED', 'Too many authentication requests.', 429);
+        $retryAfter = max(1, $limit->getRetryAfter()->getTimestamp() - time());
+        $response->headers->set('Retry-After', (string) $retryAfter);
+
+        return $response;
     }
 }

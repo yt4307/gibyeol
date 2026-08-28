@@ -11,6 +11,15 @@ framework:
     utf8: true
   php_errors:
     log: true
+  rate_limiter:
+    auth_challenge:
+      policy: sliding_window
+      limit: 10
+      interval: '1 minute'
+    auth_verify:
+      policy: sliding_window
+      limit: 10
+      interval: '1 minute'
 
 when@test:
   framework:
