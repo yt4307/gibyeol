@@ -5,6 +5,7 @@
 /frontend/.env
 .idea/
 .vscode/
+/.deploy/
 vendor/
 node_modules/
 .pnpm-store/

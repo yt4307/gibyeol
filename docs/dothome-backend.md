@@ -41,3 +41,8 @@ cookie/CORS의 기준 계약은 [api-v1.md](api-v1.md)를 따른다.
 ## 배포 산출물
 
 Composer lockfile로 production dependency를 설치한 artifact를 만든다. `.env`, runtime logs, cache, uploaded package는 artifact에 포함하지 않는다. 배포 후 migration은 명시적으로 실행하고 실패 시 application version과 schema version을 함께 되돌리는 절차를 준비한다.
+
+FTP 전용 계정에서는 저장소의 `backend`를 웹 루트와 직접 동기화하지 않는다. 로컬
+`.deploy/dothome`을 Git에서 제외된 staging root로 사용하고, SFTPresso의 `context`도 이 경로로
+제한한다. `uploadOnSave`와 원격 파일 자동 삭제는 비활성화하며 동기화 전 변경 목록을 확인한다.
+FTP 비밀번호는 workspace 설정에 기록하지 않고 운영체제 keychain에 보관한다.
