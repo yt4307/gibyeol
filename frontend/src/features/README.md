@@ -10,7 +10,8 @@ features/{feature}/
 └─ hooks/       브라우저 상태와 재사용 가능한 상호작용 로직
 ```
 
-- `src/app/page.tsx`는 route entry 역할만 하고 feature flow를 렌더링한다.
+- `src/app/**/page.tsx`는 route entry 역할만 하고 feature flow를 렌더링한다.
+- `/`는 홈, `/send`는 편지 보내기, `/inbox`는 받은 기별의 route로 사용한다.
 - 표현 컴포넌트는 가능한 한 데이터 접근 없이 props로 렌더링한다.
 - 독립 렌더링할 수 있는 component와 flow에는 같은 디렉터리에 CSF story를 둔다.
 - 여러 feature가 실제로 공유하기 전에는 성급하게 공용 디렉터리로 옮기지 않는다.

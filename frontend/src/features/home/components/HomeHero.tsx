@@ -33,7 +33,7 @@ export function HomeHero({ content }: HomeHeroProps) {
           <Eyebrow>{content.eyebrow}</Eyebrow>
           <Title>{content.title}</Title>
           <Description>{content.description}</Description>
-          <PrimaryAction href="#about">{content.actionLabel}</PrimaryAction>
+          <PrimaryAction href="/send">{content.actionLabel}</PrimaryAction>
         </Copy>
 
         <LetterPreview

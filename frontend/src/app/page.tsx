@@ -1,5 +1,5 @@
-import { PostOfficeFlow } from "@features/post-office/flow/PostOfficeFlow";
+import { HomePageFlow } from "@features/home/flow/HomePageFlow";
 
 export default function Home() {
-  return <PostOfficeFlow />;
+  return <HomePageFlow />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
+import Link from "next/link";
 
 export type PrimaryActionProps = {
   href: string;
@@ -16,7 +17,7 @@ export function PrimaryAction({ href, children }: PrimaryActionProps) {
   );
 }
 
-const Action = styled.a`
+const Action = styled(Link)`
   display: inline-flex;
   gap: var(--space-3);
   align-items: center;

@@ -2,11 +2,11 @@
 
 import { useCallback, useState } from "react";
 import { apiBaseUrl, browserProvider, chainId } from "@features/blockchain/data/config";
-
-type WalletSession = { address: `0x${string}`; authenticated: boolean };
+import { useAppStore } from "@/stores/use-app-store";
 
 export function useWalletSession() {
-  const [session, setSession] = useState<WalletSession | null>(null);
+  const session = useAppStore((state) => state.walletSession);
+  const setSession = useAppStore((state) => state.setWalletSession);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -54,7 +54,7 @@ export function useWalletSession() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [setSession]);
 
   return { session, error, busy, connect };
 }
