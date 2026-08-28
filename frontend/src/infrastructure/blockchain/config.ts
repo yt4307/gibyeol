@@ -1,5 +1,6 @@
 import { createPublicClient, createWalletClient, custom, http, parseAbi } from "viem";
 import { base, baseSepolia, foundry } from "viem/chains";
+import { activeWalletProvider } from "./wallet-provider";
 
 export const contractAbi = parseAbi([
   "function currentKeyId(address owner) view returns (uint32)",
@@ -27,7 +28,7 @@ export type BrowserProvider = {
 };
 
 export function browserProvider(): BrowserProvider {
-  const provider = (window as typeof window & { ethereum?: BrowserProvider }).ethereum;
+  const provider = activeWalletProvider();
   if (!provider) throw new Error("브라우저 지갑을 찾을 수 없습니다.");
   return provider;
 }

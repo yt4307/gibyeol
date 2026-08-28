@@ -19,6 +19,7 @@ export function WalletPanel({ address, busy = false, error, onConnect }: WalletP
       <Button type="button" onClick={onConnect} disabled={busy || Boolean(address)}>
         {address ? "인증됨" : busy ? "서명 확인 중…" : "지갑 연결"}
       </Button>
+      {!address && <HelpText>모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.</HelpText>}
       {error && <ErrorText role="alert">{error}</ErrorText>}
     </Panel>
   );
@@ -31,4 +32,5 @@ const Panel = styled.section`
 const Label = styled.p`font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--color-text-muted);`;
 const Value = styled.p`margin-top: var(--space-2); font-weight: 500;`;
 const Button = styled.button`min-height: 42px; padding: 0 var(--space-5); border: 0; border-radius: 999px; color: white; background: var(--color-neutral-1300); cursor: pointer; &:disabled { opacity: .55; cursor: default; }`;
+const HelpText = styled.p`grid-column: 1 / -1; color: var(--color-text-muted); font-size: var(--font-size-100);`;
 const ErrorText = styled.p`grid-column: 1 / -1; color: var(--color-status-error); font-size: var(--font-size-100);`;

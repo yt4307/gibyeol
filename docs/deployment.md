@@ -48,6 +48,7 @@ GitHub Pages build-time 공개 변수:
 | `NEXT_PUBLIC_API_BASE_URL` | `${API_ORIGIN}/api/v1` |
 | `NEXT_PUBLIC_CHAIN_ID` | 환경별 chain ID |
 | `NEXT_PUBLIC_RPC_URL` | 브라우저용 read RPC |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Reown Dashboard 공개 project ID |
 | `NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS` | 환경별 contract address |
 | `NEXT_PUBLIC_DRAND_ENDPOINT` | 검증한 quicknet endpoint |
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { apiBaseUrl, browserProvider, chainId } from "@/infrastructure/blockchain/config";
+import { apiBaseUrl, chainId } from "@/infrastructure/blockchain/config";
+import { connectWalletProvider } from "@/infrastructure/blockchain/wallet-provider";
 import { useAppStore } from "@/stores/use-app-store";
 
 export function useWalletSession() {
@@ -14,7 +15,7 @@ export function useWalletSession() {
     setBusy(true);
     setError(null);
     try {
-      const provider = browserProvider();
+      const { provider } = await connectWalletProvider();
       const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
       const address = accounts[0]?.toLowerCase() as `0x${string}` | undefined;
       if (!address) throw new Error("연결된 계정이 없습니다.");

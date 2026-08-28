@@ -68,6 +68,7 @@ describe("PostOfficeFlow integration", () => {
     render(<PostOfficeFlow />);
 
     expect(screen.getByRole("button", { name: "지갑 연결" })).toBeTruthy();
+    expect(screen.getByText("모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.")).toBeTruthy();
     expect(screen.queryByText("PASSKEY MAILBOX")).toBeNull();
     expect(screen.queryByText("ARRIVAL EMAIL")).toBeNull();
     expect(screen.queryByRole("navigation", { name: "우체국 메뉴" })).toBeNull();

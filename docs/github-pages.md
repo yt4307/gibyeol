@@ -13,11 +13,17 @@ Next.js static export를 GitHub Pages에서 제공한다. Pages는 HTML/CSS/JS�
 | `NEXT_PUBLIC_API_BASE_URL` | 별도 PHP origin의 `/api/v1` URL |
 | `NEXT_PUBLIC_CHAIN_ID` | 환경별 chain ID |
 | `NEXT_PUBLIC_RPC_URL` | 브라우저가 사용하는 읽기 RPC |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Reown Dashboard의 공개 project ID |
 | `NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS` | 환경별 contract 주소 |
 
 `basePath`는 client bundle에 포함되는 build-time 값이다. 한 artifact를 root와 subpath에 동시에 배포하지 않는다. URL 구조가 결정되기 전에는 production artifact를 만들지 않는다.
 
 현재 production 후보는 `www.gibyeol.kro.kr` custom domain root 방식으로 고정한다.
+
+모바일 지갑 연결을 활성화하려면 Reown Dashboard에서 프로젝트를 만들고 origin allowlist에
+`https://www.gibyeol.kro.kr`를 추가한 뒤, 동일 프로젝트 ID를 GitHub Actions variable
+`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`로 등록한다. project ID는 브라우저 bundle에 포함되는 공개 식별자이며
+private key나 secret으로 취급하지 않는다. 값이 없으면 주입형 브라우저 지갑 연결만 제공한다.
 
 | 값 | 현재 설정 |
 |---|---|
