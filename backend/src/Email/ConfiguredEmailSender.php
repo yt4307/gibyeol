@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Email;
 
+use App\Http\HttpClient;
+
 final class ConfiguredEmailSender implements EmailSender
 {
     public function __construct(
+        private readonly HttpClient $httpClient,
         private readonly string $emailProvider,
         private readonly string $resendApiKey,
         private readonly string $emailFrom,
@@ -46,23 +49,18 @@ final class ConfiguredEmailSender implements EmailSender
             throw new \RuntimeException('Email provider is not configured.');
         }
         $body = json_encode($message, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $headers = "Authorization: Bearer {$this->resendApiKey}\r\nContent-Type: application/json\r\n";
+        $headers = [
+            "Authorization: Bearer {$this->resendApiKey}",
+            'Content-Type: application/json',
+        ];
         if (null !== $idempotencyKey) {
-            $headers .= "Idempotency-Key: {$idempotencyKey}\r\n";
+            $headers[] = "Idempotency-Key: {$idempotencyKey}";
         }
-        $context = stream_context_create(['http' => [
-            'method' => 'POST',
-            'header' => $headers,
-            'content' => $body,
-            'timeout' => 10,
-            'ignore_errors' => true,
-        ]]);
-        $response = @file_get_contents('https://api.resend.com/emails', false, $context);
-        $statusLine = $http_response_header[0] ?? '';
-        if (false === $response || 1 !== preg_match('/^HTTP\/\S+ 2\d\d /', $statusLine)) {
+        $response = $this->httpClient->post('https://api.resend.com/emails', $body, $headers, 10);
+        if (!$response->isSuccessful()) {
             throw new \RuntimeException('Email provider request failed.');
         }
-        $decoded = json_decode($response, true, 16, JSON_THROW_ON_ERROR);
+        $decoded = json_decode($response->body, true, 16, JSON_THROW_ON_ERROR);
         $id = is_array($decoded) ? ($decoded['id'] ?? null) : null;
         if (!is_string($id) || '' === $id) {
             throw new \RuntimeException('Email provider response is invalid.');

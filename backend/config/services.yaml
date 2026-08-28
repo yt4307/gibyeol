@@ -31,6 +31,7 @@ services:
     exclude:
       - '../src/Kernel.php'
 
+  App\Http\HttpClient: '@App\Http\CurlHttpClient'
   App\Auth\SiweVerifier: '@App\Auth\ZbkmSiweVerifier'
   App\Email\EmailSender: '@App\Email\ConfiguredEmailSender'
   App\Recovery\MailboxKeyVerifier: '@App\Recovery\RpcMailboxKeyVerifier'

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Recovery;
 
+use App\Http\HttpClient;
+
 final class RpcMailboxKeyVerifier implements MailboxKeyVerifier
 {
     private const SELECTOR = '3b590df3';
 
     public function __construct(
+        private readonly HttpClient $httpClient,
         private readonly string $rpcUrl,
         private readonly string $contractAddress,
     ) {
@@ -30,18 +33,11 @@ final class RpcMailboxKeyVerifier implements MailboxKeyVerifier
             'method' => 'eth_call',
             'params' => [['to' => strtolower($this->contractAddress), 'data' => $data], 'latest'],
         ], JSON_THROW_ON_ERROR);
-        $context = stream_context_create(['http' => [
-            'method' => 'POST',
-            'header' => "Content-Type: application/json\r\n",
-            'content' => $payload,
-            'timeout' => 10,
-            'ignore_errors' => true,
-        ]]);
-        $response = @file_get_contents($this->rpcUrl, false, $context);
-        if (false === $response) {
+        $response = $this->httpClient->post($this->rpcUrl, $payload, ['Content-Type: application/json'], 10);
+        if (!$response->isSuccessful()) {
             throw new \RuntimeException('Mailbox lookup failed.');
         }
-        $decoded = json_decode($response, true, 16, JSON_THROW_ON_ERROR);
+        $decoded = json_decode($response->body, true, 16, JSON_THROW_ON_ERROR);
         $hex = $decoded['result'] ?? null;
         if (!is_string($hex) || 1 !== preg_match('/^0x[0-9a-fA-F]{64}$/D', $hex)) {
             throw new \RuntimeException('Mailbox lookup returned an invalid response.');

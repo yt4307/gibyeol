@@ -23,6 +23,11 @@ PHP web root에는 `backend/public`만 노출한다. package, `.env`, private ke
 6. SSH/FTP 배포 방식과 Composer vendor 업로드 제한
 7. webhook 수신 및 outbound HTTPS/Resend/RPC 연결 가능 여부
 
+2026-08-28 대상 계정의 사전 점검 결과는 PHP 8.4.24, `pdo_mysql`, `sodium`, `curl` 지원,
+256 MiB request body 제한이다. `allow_url_fopen`은 비활성화되어 있으므로 outbound RPC와 Resend
+요청은 공용 cURL 전송 계층을 사용한다. `gmp` 확장은 제공되지 않아 현재 SIWE 서명 검증의 배포
+차단 조건으로 남아 있다.
+
 정상 GBYL을 서비스 종료까지 보존할 용량이 없으면 닷홈 filesystem을 production package 저장소로 확정하지 않는다. scheduler가 없다면 GitHub Actions 등 외부 runner를 사용할 수 있지만, recovery private key와 DB를 외부 runner로 반출하지 않는 구조여야 한다.
 
 ## Cross-origin 확인
