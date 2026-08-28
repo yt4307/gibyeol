@@ -5,19 +5,17 @@ import {
   encodeLetterContext,
   encryptTextGtx1,
   hexToBytes,
-  MEDIA_CODEC,
-  MEDIA_TYPE,
   packGbyl,
   secureRandomBytes,
   sha256,
   wrapLetterKeyForRecipient,
-  type MediaInput,
 } from "@gibyeol/protocol";
 import { useCallback, useEffect, useState } from "react";
 import { isAddress, parseAbiItem, toHex } from "viem";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@features/blockchain/data/config";
 import { createQuicknetTlock } from "@features/blockchain/data/quicknet-tlock";
 import { draftStorageKey, emptyDraft, type SendDraft } from "../data/send-draft";
+import { preprocessMediaFiles, type MediaPreprocessingSummary } from "../data/media-preprocessing";
 
 const newLetterId = () => toHex(secureRandomBytes(32));
 const asArrayBuffer = (bytes: Uint8Array) => {
@@ -31,6 +29,7 @@ export function useSendLetter(sender?: `0x${string}`) {
   const [draft, setDraftState] = useState<SendDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mediaSummary, setMediaSummary] = useState<MediaPreprocessingSummary | null>(null);
 
   useEffect(() => {
     if (!sender) return;
@@ -58,7 +57,10 @@ export function useSendLetter(sender?: `0x${string}`) {
     persist({ ...draft, ...values });
   }, [draft, persist]);
 
-  const reset = useCallback(() => sender && persist(emptyDraft(newLetterId())), [persist, sender]);
+  const reset = useCallback(() => {
+    setMediaSummary(null);
+    return sender && persist(emptyDraft(newLetterId()));
+  }, [persist, sender]);
 
   const seal = useCallback(async (files: readonly File[]) => {
     if (!sender || !draft) throw new Error("지갑 연결이 필요합니다.");
@@ -71,28 +73,27 @@ export function useSendLetter(sender?: `0x${string}`) {
         const recipientKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
         if (recipientKeyId < 1) throw new Error("받는 분의 메일박스가 아직 없습니다.");
         working = persist({ ...working, stage: "PACKING", recipient, recipientKeyId });
-        const letterKey = secureRandomBytes(32);
-        const context = encodeLetterContext({ chainId, contractAddress, letterId: working.letterId, sender, recipient });
-        const media: MediaInput[] = await Promise.all(files.map(async (file) => {
-          const mapping = file.type === "image/webp" ? [MEDIA_TYPE.IMAGE, MEDIA_CODEC.WEBP] as const
-            : file.type === "image/jpeg" ? [MEDIA_TYPE.IMAGE, MEDIA_CODEC.JPEG] as const
-            : file.type === "video/webm" ? [MEDIA_TYPE.TIMELAPSE, MEDIA_CODEC.WEBM] as const
-            : file.type === "video/mp4" ? [MEDIA_TYPE.TIMELAPSE, MEDIA_CODEC.MP4] as const : null;
-          if (!mapping) throw new Error("미디어는 WebP, JPEG, WebM 또는 MP4만 지원합니다.");
-          return { type: mapping[0], codec: mapping[1], bytes: new Uint8Array(await file.arrayBuffer()) };
-        }));
-        const archive = await packGbyl(media, letterKey, context);
-        const encryptedText = await encryptTextGtx1(working.message, letterKey, context);
-        working = persist({
-          ...working,
-          stage: "UPLOADING_PACKAGE",
-          recipient: recipient,
-          recipientKeyId,
-          letterKeyHex: bytesToHex(letterKey),
-          encryptedTextHex: toHex(encryptedText),
-          archiveHex: bytesToHex(archive),
-          archiveSha256: toHex(await sha256(archive)),
-        });
+        try {
+          const letterKey = secureRandomBytes(32);
+          const context = encodeLetterContext({ chainId, contractAddress, letterId: working.letterId, sender, recipient });
+          const media = await preprocessMediaFiles(files);
+          setMediaSummary(media.summary);
+          const archive = await packGbyl(media.items, letterKey, context);
+          const encryptedText = await encryptTextGtx1(working.message, letterKey, context);
+          working = persist({
+            ...working,
+            stage: "UPLOADING_PACKAGE",
+            recipient: recipient,
+            recipientKeyId,
+            letterKeyHex: bytesToHex(letterKey),
+            encryptedTextHex: toHex(encryptedText),
+            archiveHex: bytesToHex(archive),
+            archiveSha256: toHex(await sha256(archive)),
+          });
+        } catch (cause) {
+          working = persist({ ...working, stage: "DRAFT" });
+          throw cause;
+        }
       }
       if (working.stage === "UPLOADING_PACKAGE") {
         const archive = hexToBytes(working.archiveHex!);
@@ -192,5 +193,5 @@ export function useSendLetter(sender?: `0x${string}`) {
     } finally { setBusy(false); }
   }, [draft, persist, sender]);
 
-  return { draft, busy, error, update, seal, reset };
+  return { draft, busy, error, mediaSummary, update, seal, reset };
 }

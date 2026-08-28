@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   waitForTransactionReceipt: vi.fn(),
   writeContract: vi.fn(),
   wrapLetterKeyForRecipient: vi.fn(),
+  preprocessMediaFiles: vi.fn(),
 }));
 
 vi.mock("@features/blockchain/data/config", () => ({
@@ -34,7 +35,12 @@ vi.mock("@features/blockchain/data/quicknet-tlock", () => ({
   createQuicknetTlock: () => ({ encrypt: vi.fn(), decrypt: vi.fn() }),
 }));
 
+vi.mock("../data/media-preprocessing", () => ({
+  preprocessMediaFiles: mocks.preprocessMediaFiles,
+}));
+
 vi.mock("@gibyeol/protocol", () => ({
+  MAX_ARCHIVE_BYTES: 10 * 1024 * 1024,
   bytesToHex: (value: Uint8Array) => [...value].map((byte) => byte.toString(16).padStart(2, "0")).join(""),
   encodeLetterContext: () => new Uint8Array([1]),
   encryptTextGtx1: async () => new Uint8Array([0x47, 0x54, 0x58, 0x31]),
@@ -75,6 +81,10 @@ describe("useSendLetter", () => {
     vi.clearAllMocks();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 201 }));
     mocks.wrapLetterKeyForRecipient.mockResolvedValue(new Uint8Array([9, 9]));
+    mocks.preprocessMediaFiles.mockResolvedValue({
+      items: [],
+      summary: { originalBytes: 0, processedBytes: 0, estimatedArchiveBytes: 8, convertedImages: 0 },
+    });
     mocks.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     mocks.writeContract.mockResolvedValue(transactionHash);
     mocks.getLogs.mockResolvedValue([]);
@@ -148,5 +158,19 @@ describe("useSendLetter", () => {
     expect(mocks.wrapLetterKeyForRecipient).toHaveBeenCalledOnce();
     expect(result.current.draft).toMatchObject({ stage: "SEALED", recipientKeyId: 2 });
     expect(mocks.writeContract.mock.calls[0]?.[0].args[2]).toBe(2);
+  });
+
+  it("returns to DRAFT when media preprocessing fails so the attachment can be retried", async () => {
+    mocks.readContract.mockResolvedValueOnce(1);
+    mocks.preprocessMediaFiles.mockRejectedValueOnce(new RangeError("사진·영상 소포가 암호화 후 10 MiB를 초과합니다."));
+
+    const { result } = renderHook(() => useSendLetter(sender));
+    await waitFor(() => expect(result.current.draft?.stage).toBe("DRAFT"));
+    act(() => result.current.update({ recipient, message: "크리스마스에 만나요" }));
+    await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("10 MiB");
+
+    expect(result.current.draft?.stage).toBe("DRAFT");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mocks.writeContract).not.toHaveBeenCalled();
   });
 });
