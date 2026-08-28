@@ -78,6 +78,12 @@ docker compose -f docker-compose.dev.yml run --rm contracts fmt --check
 docker compose -f docker-compose.dev.yml exec db mysql -u gibyeol -p gibyeol
 ```
 
+CI와 동일하게 격리된 빈 MySQL volume에서 모든 migration을 검증하려면 다음 명령을 사용한다. 검증용 volume은 실행 후 자동으로 제거된다.
+
+```powershell
+pnpm verify:migrations
+```
+
 `contracts`는 상시 프로세스가 아닌 tool service라 개발 Compose의 `run --rm`으로 실행한다. `anvil`은 로컬 chain을 제공하는 상시 service다.
 
 `docker-compose.dev.yml`은 `name: gibyeol-dev`를 가진 독립 개발 스택이다. 기본 Compose의 모든 서비스를 별도 volume과 변경된 host port로 제공하며 Storybook도 포함한다. Frontend와 Storybook은 같은 source 및 pnpm volume을 공유하지만 별도 프로세스로 실행된다.
