@@ -22,6 +22,7 @@ docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \
   -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
   backend composer test
+COMPOSE_FILE_PATH="$COMPOSE_FILE_PATH" ./scripts/verify-migrations.sh
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \
   --user "$CONTRACT_RUN_USER" -e HOME=/tmp contracts fmt --check
 docker compose -f "$COMPOSE_FILE_PATH" run --rm --no-deps \

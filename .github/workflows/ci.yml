@@ -56,6 +56,7 @@ jobs:
           docker compose -f docker-compose.dev.yml run --rm --no-deps \
             -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
             backend composer test
+          pnpm verify:migrations
 
       - name: 컨트랙트 검증
         run: |
