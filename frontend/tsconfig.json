@@ -27,7 +27,7 @@
         "./src/*"
       ],
       "@features/*": [
-        "./features/*"
+        "./src/features/*"
       ]
     }
   },
