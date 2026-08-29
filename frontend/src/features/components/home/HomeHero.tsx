@@ -31,7 +31,11 @@ export function HomeHero({ content }: HomeHeroProps) {
       <HeroGrid>
         <Copy>
           <Eyebrow>{content.eyebrow}</Eyebrow>
-          <Title>{content.title}</Title>
+          <Title aria-label={content.title.join(" ")}>
+            {content.title.map((phrase) => (
+              <TitlePhrase key={phrase}>{phrase}</TitlePhrase>
+            ))}
+          </Title>
           <Description>{content.description}</Description>
           <Actions>
             <PrimaryAction href="/send">{content.actionLabel}</PrimaryAction>
@@ -127,16 +131,25 @@ const Eyebrow = styled.p`
 `;
 
 const Title = styled.h1`
-  max-width: 11ch;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.24em;
+  max-width: 13ch;
   margin-top: var(--space-5);
-  white-space: pre-line;
   color: var(--color-text);
   font-family: var(--font-family-display);
-  font-size: clamp(3rem, 7.4vw, 6.6rem);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
   font-weight: 400;
   line-height: 1.08;
   letter-spacing: -0.055em;
-  text-wrap: balance;
+
+  @media (max-width: 340px) {
+    font-size: 2rem;
+  }
+`;
+
+const TitlePhrase = styled.span`
+  white-space: nowrap;
 `;
 
 const Description = styled.p`

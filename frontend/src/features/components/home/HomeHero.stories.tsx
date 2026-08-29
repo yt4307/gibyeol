@@ -17,7 +17,7 @@ export const ShortCopy: Story = {
   args: {
     content: {
       ...homeContent,
-      title: "미래에 닿는\n한 통의 기별.",
+      title: ["미래에 닿는", "한 통의 기별."],
       description: "오늘의 마음을 약속한 시간까지 안전하게 보관합니다.",
     },
   },
