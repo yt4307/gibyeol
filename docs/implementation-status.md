@@ -1,6 +1,6 @@
 # 구현 상태와 검증 증거
 
-기준일: 2026-08-28. 현재 checkout의 로컬 구현과 검증 결과다. 외부 계정·비밀키가 필요한 배포 작업은 완료로 오인하지 않도록 별도 표시한다.
+기준일: 2026-08-29. 현재 checkout의 로컬 구현과 검증 결과다. 외부 계정·비밀키가 필요한 배포 작업은 완료로 오인하지 않도록 별도 표시한다.
 
 | 단계 | 상태 | 구현/증거 |
 |---|---|---|
@@ -11,8 +11,8 @@
 | M4 byte foundation | 완료 | `4cafec0`, protocol test |
 | M5 GTX1/GBYL | 완료 | `ad88fd2`, parser/crypto test |
 | M6 mailbox/tlock | 완료 | `da83851`, `4fcb994`, `db03bf4`, GPK1/X25519/Passkey PRF fallback/tlock 경계와 Quicknet 실 round 왕복 |
-| M7 contract | 재배포 대기 | 메일박스 비활성화·새 키 재활성화와 수신 차단 로컬 구현. Solidity 0.8.30 컴파일 성공, Foundry 재검증 대기 |
-| M8 Base Sepolia E2E | 기존 컨트랙트 배포 | Base Sepolia `0x33d4123ac88792CFe81A8Ae818760C8008d29747`, 배포 블록 `46079415`. 이 주소는 메일박스 비활성화 미지원, 신규 컨트랙트 재배포 필요 |
+| M7 contract | 완료 | 메일박스 비활성화·새 키 재활성화와 수신 차단 구현, Foundry 테스트 9개 통과 |
+| M8 Base Sepolia E2E | 신규 컨트랙트 배포 | Base Sepolia `0x3DBa3aEED2D9a3dEe1Fa6E6db8e259d4E304f379`, 배포 블록 `46102067`, 메일박스 비활성화 지원 |
 | M9 package/auth | 완료 | 실제 SIWE signature·nonce replay·GBYL upload, 인증 요청 제한, GMP 없는 ECRECOVER와 chain 검증·fallback·응답 일치 RPC 적용 검증 |
 | M10 email/recovery | 로컬 완료 | `582ab05`, `c63e3fe`, `4fcb994`, `deefa9b`, OTP/HMAC/recovery/webhook과 초기 이메일 필수 확인 |
 | M11 발송 UI | 로컬 완료 | 세분화 상태·중복 tx 복구·키 회전 재포장, 사진 2,048px/WebP 전처리, WebCodecs 우선·싱글스레드 ffmpeg.wasm 대체 타임랩스 변환과 10 MiB 사전 검증, 핵심 hook 회귀 테스트, 우체국 단계별 게이트·라우트·세션 유지 통합 테스트, static build와 Storybook |
@@ -27,11 +27,10 @@
 - protocol: 8 files, 18 tests 성공. 10 MiB 정확 경계, item 순서 인증, mailbox부터 개봉까지 로컬 암호 흐름 포함
 - backend: 46 tests, 131 assertions 성공
 - 새 MySQL 8.4 volume에 migration 4개 적용 후 up-to-date 검증 성공
-- contract: 8 tests 성공, event topic/data ABI 검증과 fuzz 1,000 runs 성공
-- mailbox deactivation 변경: Solidity 0.8.30 contract/test 컴파일 성공. Docker 엔진 중단으로 Foundry test 재실행 대기
+- contract: 9 tests 성공, event topic/data ABI 검증과 fuzz 1,000 runs, 메일박스 비활성화·재활성화 성공
 - Quicknet 실제 round `31692837`에서 `pnpm verify:quicknet` tlock encrypt/decrypt 왕복 성공
 - manifest round 경계: round `35107012` = Unix `1798124400`, 이전 round = `1798124397`
-- Base Sepolia 배포: tx `0x22a5e42433d4569cef0337176153dbb93c413a9165d4196ce8dfe2423c0349ea`, runtime code hash `0x359cd5ba0b77a2167cc17d4621956b522f9de0183136f7da2724339c7127dd8c`, Sourcify `exact_match`와 Blockscout 전체 검증 완료
+- Base Sepolia 재배포: tx `0x94644df022a5eee3b63979c4a7091ec9410ad0bcd92dbfb027046e8061279fcf`, runtime code hash `0xbc879bad6834ffc47a6d854df0f4b25da2c24081289a17af408ae2a7f7357d80`
 - 로컬 Postman: 첫 실행 `sent=1`, 동일 입력 재실행 `sent=0`, `skipped=1`
 
 ## 외부 입력이 있어야 끝나는 항목
