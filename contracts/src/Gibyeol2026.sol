@@ -13,18 +13,23 @@ contract Gibyeol2026 {
 
     mapping(address owner => uint32 keyId) public currentKeyId;
     mapping(address owner => mapping(uint32 keyId => bytes32 publicKey)) public mailboxPublicKeys;
+    mapping(address owner => bool active) public mailboxActive;
     mapping(bytes32 letterId => bool isSealed) public sealedLetters;
 
     error ZeroMailboxPublicKey();
     error MailboxKeyIdOverflow();
+    error MailboxMissing();
+    error MailboxAlreadyInactive();
     error ZeroRecipient();
     error LetterAlreadySealed(bytes32 letterId);
     error StaleRecipientKey(uint32 expectedKeyId, uint32 suppliedKeyId);
     error RecipientMailboxMissing(address recipient, uint32 keyId);
+    error RecipientMailboxInactive(address recipient);
     error EncryptedTextTooLarge(uint256 suppliedLength);
     error SealedKeyTooLarge(uint256 suppliedLength);
 
     event MailboxKeyRegistered(address indexed owner, uint32 indexed keyId, bytes32 publicKey);
+    event MailboxDeactivated(address indexed owner, uint32 indexed keyId);
 
     event LetterSealed(
         bytes32 indexed letterId,
@@ -59,11 +64,21 @@ contract Gibyeol2026 {
 
         currentKeyId[msg.sender] = keyId;
         mailboxPublicKeys[msg.sender][keyId] = publicKey;
+        mailboxActive[msg.sender] = true;
 
         // Envelope bytes intentionally remain only in immutable transaction calldata.
         passkeyEnvelope;
         recoveryEnvelope;
         emit MailboxKeyRegistered(msg.sender, keyId, publicKey);
+    }
+
+    function deactivateMailbox() external {
+        uint32 keyId = currentKeyId[msg.sender];
+        if (keyId == 0) revert MailboxMissing();
+        if (!mailboxActive[msg.sender]) revert MailboxAlreadyInactive();
+
+        mailboxActive[msg.sender] = false;
+        emit MailboxDeactivated(msg.sender, keyId);
     }
 
     function sealLetter(
@@ -78,6 +93,7 @@ contract Gibyeol2026 {
         if (sealedLetters[letterId]) revert LetterAlreadySealed(letterId);
 
         uint32 activeKeyId = currentKeyId[recipient];
+        if (!mailboxActive[recipient]) revert RecipientMailboxInactive(recipient);
         if (activeKeyId != recipientKeyId) {
             revert StaleRecipientKey(activeKeyId, recipientKeyId);
         }

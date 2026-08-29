@@ -24,6 +24,10 @@ contract GibyeolActor {
         target.registerMailboxKey(publicKey, passkeyEnvelope, recoveryEnvelope);
     }
 
+    function deactivate(Gibyeol2026 target) external {
+        target.deactivateMailbox();
+    }
+
     function seal(
         Gibyeol2026 target,
         bytes32 letterId,
@@ -74,6 +78,10 @@ contract Gibyeol2026Test {
             "seal selector"
         );
         require(
+            target.deactivateMailbox.selector == bytes4(keccak256("deactivateMailbox()")),
+            "deactivate selector"
+        );
+        require(
             keccak256("MailboxKeyRegistered(address,uint32,bytes32)")
                 == 0xbf6bd81319d12d0543835e7dc44e48ec5219dd878a513a88b343bed6b6dd8fd3,
             "mailbox event signature"
@@ -92,6 +100,69 @@ contract Gibyeol2026Test {
         require(target.currentKeyId(address(recipient)) == 2, "current key");
         require(target.mailboxPublicKeys(address(recipient), 1) == bytes32(uint256(1)), "old key");
         require(target.mailboxPublicKeys(address(recipient), 2) == bytes32(uint256(2)), "new key");
+        require(target.mailboxActive(address(recipient)), "mailbox inactive after rotation");
+    }
+
+    function testMailboxDeactivationAndReactivation() public {
+        (bool missing,) = address(recipient).call(
+            abi.encodeCall(GibyeolActor.deactivate, (target))
+        );
+        require(!missing, "missing mailbox deactivated");
+
+        recipient.register(target, bytes32(uint256(1)), hex"01", hex"02");
+        VM.recordLogs();
+        recipient.deactivate(target);
+        RecordedLog[] memory deactivationLogs = VM.getRecordedLogs();
+        require(deactivationLogs.length == 1, "deactivation log count");
+        require(
+            deactivationLogs[0].topics[0] == keccak256("MailboxDeactivated(address,uint32)"),
+            "deactivation signature"
+        );
+        require(
+            deactivationLogs[0].topics[1] == bytes32(uint256(uint160(address(recipient)))),
+            "deactivation owner topic"
+        );
+        require(deactivationLogs[0].topics[2] == bytes32(uint256(1)), "deactivation key topic");
+        require(!target.mailboxActive(address(recipient)), "mailbox still active");
+        require(target.currentKeyId(address(recipient)) == 1, "key id removed");
+        require(
+            target.mailboxPublicKeys(address(recipient), 1) == bytes32(uint256(1)),
+            "public key removed"
+        );
+
+        (bool repeated,) = address(recipient).call(
+            abi.encodeCall(GibyeolActor.deactivate, (target))
+        );
+        require(!repeated, "repeated deactivation accepted");
+
+        (bool sealedWhileInactive,) = address(sender).call(
+            abi.encodeCall(
+                GibyeolActor.seal,
+                (
+                    target,
+                    keccak256("inactive"),
+                    address(recipient),
+                    1,
+                    bytes(""),
+                    bytes(""),
+                    bytes32(0)
+                )
+            )
+        );
+        require(!sealedWhileInactive, "inactive mailbox accepted a letter");
+
+        recipient.register(target, bytes32(uint256(2)), hex"03", hex"04");
+        require(target.mailboxActive(address(recipient)), "mailbox not reactivated");
+        require(target.currentKeyId(address(recipient)) == 2, "reactivated key id");
+        sender.seal(
+            target,
+            keccak256("reactivated"),
+            address(recipient),
+            2,
+            hex"47545831",
+            hex"1234",
+            keccak256("reactivated archive")
+        );
     }
 
     function testRejectsZeroMailboxKeyAndRecipient() public {
