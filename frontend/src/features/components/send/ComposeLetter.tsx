@@ -21,15 +21,15 @@ export function ComposeLetter({ draft, busy, error, mediaSummary, onChange, onSu
     {draft.transactionHash && <Receipt>거래: {draft.transactionHash}</Receipt>}
   </Form>;
 }
-const Form = styled.form`display:grid;gap:var(--space-5);padding:clamp(var(--space-5),4vw,var(--space-8));background:var(--color-neutral-100);border:1px solid var(--color-neutral-300);border-radius:20px;`;
+const Form = styled.form`display:grid;gap:var(--space-5);padding:clamp(var(--space-5),4vw,var(--space-8));background:linear-gradient(145deg,rgb(245 246 250 / 3%),transparent 38%),rgb(18 28 46 / 92%);border:1px solid var(--color-border);border-radius:4px;box-shadow:var(--shadow-surface);`;
 const Header = styled.header`display:flex;justify-content:space-between;gap:var(--space-4);align-items:start;`;
-const Label = styled.p`font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--color-brand-800);`;
-const Stage = styled.span`padding:6px 10px;border-radius:999px;background:var(--color-brand-100);color:var(--color-brand-900);font-size:12px;font-weight:700;`;
-const Field = styled.label`display:grid;gap:var(--space-2);font-size:var(--font-size-100);font-weight:600;input,textarea{width:100%;padding:var(--space-4);border:1px solid var(--color-neutral-400);border-radius:10px;background:white;font:inherit;font-weight:400;}textarea{resize:vertical;line-height:1.65;}`;
-const MediaPolicy = styled.small`font-weight:400;line-height:1.55;color:var(--color-neutral-700);`;
-const MediaStatus = styled.small`font-weight:600;color:var(--color-brand-800);`;
+const Label = styled.p`font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--color-accent-primary);`;
+const Stage = styled.span`padding:6px 10px;border:1px solid var(--color-border);border-radius:999px;background:rgb(217 199 163 / 7%);color:var(--color-accent-primary);font-size:12px;font-weight:600;`;
+const Field = styled.label`display:grid;gap:var(--space-2);font-size:var(--font-size-100);font-weight:600;input,textarea{width:100%;padding:var(--space-4);border:1px solid var(--color-border);border-radius:3px;background:rgb(13 19 33 / 58%);font:inherit;font-weight:400;transition:border-color 160ms ease,background 160ms ease;&:focus{border-color:var(--color-accent-primary);background:rgb(13 19 33 / 78%);}}textarea{resize:vertical;line-height:1.75;}`;
+const MediaPolicy = styled.small`font-weight:400;line-height:1.55;color:var(--color-text-muted);`;
+const MediaStatus = styled.small`font-weight:600;color:var(--color-accent-primary);`;
 const Actions = styled.div`display:flex;gap:var(--space-3);flex-wrap:wrap;`;
-const Submit = styled.button`min-height:48px;padding:0 var(--space-6);border:0;border-radius:999px;background:var(--color-brand-800);color:white;font-weight:600;cursor:pointer;&:disabled{opacity:.55}`;
-const Reset = styled.button`min-height:48px;padding:0 var(--space-5);border:1px solid var(--color-neutral-400);border-radius:999px;background:transparent;cursor:pointer;`;
+const Submit = styled.button`min-height:48px;padding:0 var(--space-6);border:1px solid var(--color-accent-primary);border-radius:3px;background:var(--color-accent-primary);color:var(--color-identity-midnight-navy);font-weight:600;cursor:pointer;&:disabled{opacity:.55}`;
+const Reset = styled.button`min-height:48px;padding:0 var(--space-5);border:1px solid var(--color-border);border-radius:3px;background:transparent;color:var(--color-text-muted);cursor:pointer;`;
 const ErrorText = styled.p`color:var(--color-status-error);`;
 const Receipt = styled.p`overflow-wrap:anywhere;color:var(--color-status-success);font-size:12px;`;

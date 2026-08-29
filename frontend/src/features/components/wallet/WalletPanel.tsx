@@ -43,12 +43,12 @@ export function WalletPanel({ address, busy = false, pendingAction = null, resto
 
 const Panel = styled.section`
   display: grid; grid-template-columns: 1fr auto; gap: var(--space-3); align-items: center;
-  padding: var(--space-5); background: var(--color-neutral-100); border: 1px solid var(--color-neutral-300); border-radius: 16px;
+  padding: var(--space-5); background: rgb(18 28 46 / 86%); border: 1px solid var(--color-border); border-radius: 4px; box-shadow:var(--shadow-surface);backdrop-filter:blur(18px);
 `;
 const Label = styled.p`font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--color-text-muted);`;
 const Value = styled.p`margin-top: var(--space-2); font-weight: 500;`;
 const Actions = styled.div`display:flex;gap:var(--space-2);align-items:center;@media(max-width:480px){grid-column:1/-1;width:100%;button{flex:1;}}`;
-const Button = styled.button`min-height: 42px; padding: 0 var(--space-5); border: 0; border-radius: 999px; color: white; background: var(--color-neutral-1300); cursor: pointer; &:disabled { opacity: .55; cursor: default; }`;
-const SecondaryButton = styled(Button)`color:var(--color-text);background:transparent;border:1px solid var(--color-neutral-400);`;
+const Button = styled.button`min-height: 42px; padding: 0 var(--space-5); border: 1px solid var(--color-accent-primary); border-radius: 3px; color: var(--color-identity-midnight-navy); background: var(--color-accent-primary); cursor: pointer; transition:filter 160ms ease;&:hover{filter:brightness(1.08)} &:disabled { opacity: .55; cursor: default; }`;
+const SecondaryButton = styled(Button)`color:var(--color-text-muted);background:transparent;border-color:var(--color-border);`;
 const HelpText = styled.p`grid-column: 1 / -1; color: var(--color-text-muted); font-size: var(--font-size-100);`;
 const ErrorText = styled.p`grid-column: 1 / -1; color: var(--color-status-error); font-size: var(--font-size-100);`;

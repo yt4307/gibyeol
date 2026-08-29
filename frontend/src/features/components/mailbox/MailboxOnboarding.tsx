@@ -16,9 +16,9 @@ export function MailboxOnboarding({ keyId, active, busy, error, onRegister, onDe
     {error && <ErrorText role="alert">{error}</ErrorText>}
   </Panel>;
 }
-const Panel = styled.section`display:grid; gap:var(--space-4); padding:var(--space-6); background:var(--color-secondary-100); border:1px solid var(--color-secondary-300); border-radius:16px;`;
-const Label = styled.p`font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--color-secondary-800);`;
+const Panel = styled.section`display:grid; gap:var(--space-4); padding:var(--space-6); background:rgb(18 28 46 / 86%); border:1px solid var(--color-border); border-radius:4px;box-shadow:var(--shadow-surface);backdrop-filter:blur(18px);`;
+const Label = styled.p`font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--color-accent-primary);`;
 const Copy = styled.p`margin-top:var(--space-2);color:var(--color-text-muted);line-height:1.6;`;
-const Button = styled.button`justify-self:start;min-height:44px;padding:0 var(--space-5);border:0;border-radius:999px;background:var(--color-secondary-800);color:white;cursor:pointer;&:disabled{opacity:.55}`;
-const DeactivateButton = styled(Button)`color:var(--color-text);background:transparent;border:1px solid var(--color-neutral-500);`;
+const Button = styled.button`justify-self:start;min-height:44px;padding:0 var(--space-5);border:1px solid var(--color-accent-primary);border-radius:3px;background:var(--color-accent-primary);color:var(--color-identity-midnight-navy);cursor:pointer;&:disabled{opacity:.55}`;
+const DeactivateButton = styled(Button)`color:#e2a29c;background:rgb(166 70 62 / 8%);border-color:rgb(166 70 62 / 52%);`;
 const ErrorText = styled.p`color:var(--color-status-error);`;
