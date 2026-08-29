@@ -115,10 +115,12 @@ export function useWalletSession() {
   const [pendingAction, setPendingAction] = useState<WalletPendingAction>(null);
   const [availableAccounts, setAvailableAccounts] = useState<`0x${string}`[]>([]);
   const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
+  const [walletAccountMismatch, setWalletAccountMismatch] = useState(false);
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
     setAuthenticationStatus("anonymous");
+    setWalletAccountMismatch(false);
     clearActiveWalletProvider();
     if (notifyServer) {
       void fetch(`${apiBaseUrl}/auth/logout`, {
@@ -191,7 +193,9 @@ export function useWalletSession() {
             // 보낼 수 있다. 서버 세션은 유효하므로 실제 다른 주소가 확인될 때만 해제한다.
             if (confirmedAccounts.length === 0 || confirmedAccounts.includes(session.address)) return;
             setError("지갑에서 계정이 변경되었습니다. 변경한 계정으로 다시 로그인해 주세요.");
-            forgetSession(true);
+            // provider 이벤트만으로 서버 세션을 삭제하지 않는다. 사용자가 계정 변경이나
+            // 로그아웃을 명시적으로 선택하기 전까지 HttpOnly 세션 쿠키를 보존한다.
+            setWalletAccountMismatch(true);
           })
           .catch(() => {
             // 모바일 지갑에서 브라우저로 돌아오는 동안의 일시적인 provider 중단은 무시한다.
@@ -203,7 +207,7 @@ export function useWalletSession() {
       if (confirmationTimer) clearTimeout(confirmationTimer);
       provider.removeListener?.("accountsChanged", handleAccountsChanged);
     };
-  }, [forgetSession, session]);
+  }, [session]);
 
   const authenticateAddress = useCallback(async (
     provider: NonNullable<ReturnType<typeof activeWalletProvider>>,
@@ -263,6 +267,7 @@ export function useWalletSession() {
       const next = { address, authenticated: true };
       setSession(next);
       setAuthenticationStatus("authenticated");
+      setWalletAccountMismatch(false);
       return next;
   }, [setAuthenticationStatus, setSession]);
 
@@ -304,6 +309,7 @@ export function useWalletSession() {
     }).catch(() => undefined);
     setSession(null);
     setAuthenticationStatus("anonymous");
+    setWalletAccountMismatch(false);
   }, [setAuthenticationStatus, setSession]);
 
   const changeAccount = useCallback(async () => {
@@ -372,6 +378,7 @@ export function useWalletSession() {
     } finally {
       setSession(null);
       setAuthenticationStatus("anonymous");
+      setWalletAccountMismatch(false);
       clearActiveWalletProvider();
       setPendingAction(null);
     }
@@ -384,7 +391,7 @@ export function useWalletSession() {
     pendingAction,
     availableAccounts,
     restoring: authenticationStatus === "restoring",
-    authenticated: authenticationStatus === "authenticated",
+    authenticated: authenticationStatus === "authenticated" && !walletAccountMismatch,
     connect,
     selectAccount,
     cancelAccountSelection,

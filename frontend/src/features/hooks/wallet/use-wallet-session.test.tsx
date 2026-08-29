@@ -147,7 +147,7 @@ describe("useWalletSession", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("clears the session after the wallet confirms a different account", async () => {
+  it("blocks wallet actions without deleting the server session after an account change", async () => {
     cacheWalletSession();
     let accountsChanged: (() => void) | undefined;
     const provider = {
@@ -173,9 +173,10 @@ describe("useWalletSession", () => {
     });
 
     expect(result.current.authenticated).toBe(false);
-    expect(result.current.session).toBeNull();
+    expect(result.current.session?.address).toBe(address);
     expect(result.current.error).toContain("계정이 변경되었습니다");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem("gibyeol:wallet-session")).toContain(address);
   });
 
   it("does not persist the authentication token in browser storage", async () => {
