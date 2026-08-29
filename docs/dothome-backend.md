@@ -88,5 +88,11 @@ FTP 계정이 `html`만 노출하는 경우 `./scripts/build-dothome-artifact.sh
 6. `/gibyeol-migrate.php`의 POST form에 로컬 토큰을 입력하여 migration 성공과 서버 토큰 삭제를 확인한다.
 7. 성공 직후 원격과 로컬의 `gibyeol-migrate.php`, `migration-token`, `migration.lock`을 모두 삭제한다.
 
+운영 DB에 개인정보성 데이터가 남아 있는지 확인할 때는 `./scripts/stage-dothome-db-audit.sh`로
+일회성 집계 실행기와 토큰을 준비한다. 토큰 원문은 FTP context 밖에만 저장되고 실행기에는 해시만
+포함된다. `gibyeol-db-audit.php`만 업로드한 뒤 해당 경로에서 토큰을 제출하면 실제 값 없이 테이블별
+행·지갑·암호화 이메일·해시 IP 건수만 반환하고 실행기가 스스로 삭제된다. 조회 직후 원격 실행기 삭제
+여부를 확인하고 로컬 토큰 파일을 삭제한다.
+
 점검 파일은 `phpinfo()`를 호출하지 않으며 비밀값과 서버 절대 경로를 출력하지 않는다. 다만 공개
 상태로 계속 둘 이유가 없으므로 전체 artifact에는 포함하지 않는다.
