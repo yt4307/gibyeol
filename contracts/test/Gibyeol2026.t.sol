@@ -104,9 +104,7 @@ contract Gibyeol2026Test {
     }
 
     function testMailboxDeactivationAndReactivation() public {
-        (bool missing,) = address(recipient).call(
-            abi.encodeCall(GibyeolActor.deactivate, (target))
-        );
+        (bool missing,) = address(recipient).call(abi.encodeCall(GibyeolActor.deactivate, (target)));
         require(!missing, "missing mailbox deactivated");
 
         recipient.register(target, bytes32(uint256(1)), hex"01", hex"02");
@@ -130,25 +128,25 @@ contract Gibyeol2026Test {
             "public key removed"
         );
 
-        (bool repeated,) = address(recipient).call(
-            abi.encodeCall(GibyeolActor.deactivate, (target))
-        );
+        (bool repeated,) =
+            address(recipient).call(abi.encodeCall(GibyeolActor.deactivate, (target)));
         require(!repeated, "repeated deactivation accepted");
 
-        (bool sealedWhileInactive,) = address(sender).call(
-            abi.encodeCall(
-                GibyeolActor.seal,
-                (
-                    target,
-                    keccak256("inactive"),
-                    address(recipient),
-                    1,
-                    bytes(""),
-                    bytes(""),
-                    bytes32(0)
+        (bool sealedWhileInactive,) = address(sender)
+            .call(
+                abi.encodeCall(
+                    GibyeolActor.seal,
+                    (
+                        target,
+                        keccak256("inactive"),
+                        address(recipient),
+                        1,
+                        bytes(""),
+                        bytes(""),
+                        bytes32(0)
+                    )
                 )
-            )
-        );
+            );
         require(!sealedWhileInactive, "inactive mailbox accepted a letter");
 
         recipient.register(target, bytes32(uint256(2)), hex"03", hex"04");
