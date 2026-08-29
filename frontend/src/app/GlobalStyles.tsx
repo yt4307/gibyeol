@@ -137,19 +137,18 @@ const globalStyles = css`
     min-width: 280px;
     min-height: 100%;
     background: var(--color-app-background);
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
 
-  html,
   body {
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    max-width: 100vw;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body {
@@ -167,7 +166,7 @@ const globalStyles = css`
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-x: ${horizontalOverscrollBehavior};
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: auto;
   }
 
   @media (max-width: ${breakpoints.mobile}px) {
