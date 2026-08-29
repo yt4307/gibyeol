@@ -17,6 +17,7 @@ import { useAppStore } from "@/stores/use-app-store";
 
 type SessionResponse = { walletAddress: `0x${string}` };
 type ErrorPayload = { error?: { code?: unknown; message?: unknown } };
+export type WalletPendingAction = "connect" | "change" | "logout" | null;
 
 function isWalletAddress(value: unknown): value is `0x${string}` {
   return typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value);
@@ -98,7 +99,7 @@ export function useWalletSession() {
   const authenticationStatus = useAppStore((state) => state.authenticationStatus);
   const setAuthenticationStatus = useAppStore((state) => state.setAuthenticationStatus);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<WalletPendingAction>(null);
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
@@ -179,7 +180,7 @@ export function useWalletSession() {
   }, [forgetSession, session]);
 
   const authenticate = useCallback(async (replaceWallet = false) => {
-    setBusy(true);
+    setPendingAction(replaceWallet ? "change" : "connect");
     setError(null);
     try {
       const { provider } = await connectWalletProvider({ replaceSession: replaceWallet });
@@ -248,14 +249,14 @@ export function useWalletSession() {
       setError(message);
       throw cause;
     } finally {
-      setBusy(false);
+      setPendingAction(null);
     }
   }, [setAuthenticationStatus, setSession]);
 
   const connect = useCallback(() => authenticate(), [authenticate]);
 
   const changeWallet = useCallback(async () => {
-    setBusy(true);
+    setPendingAction("change");
     setError(null);
     await fetch(`${apiBaseUrl}/auth/logout`, {
       method: "POST",
@@ -267,13 +268,34 @@ export function useWalletSession() {
     return authenticate(true);
   }, [authenticate, setAuthenticationStatus, setSession]);
 
+  const logout = useCallback(async () => {
+    setPendingAction("logout");
+    setError(null);
+    try {
+      const response = await fetch(`${apiBaseUrl}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw await apiResponseError(response, "로그아웃 단계 실패");
+    } catch (cause) {
+      setError(errorDetails(cause, "서버 로그아웃 요청에 실패했습니다."));
+    } finally {
+      setSession(null);
+      setAuthenticationStatus("anonymous");
+      clearActiveWalletProvider();
+      setPendingAction(null);
+    }
+  }, [setAuthenticationStatus, setSession]);
+
   return {
     session,
     error,
-    busy,
+    busy: pendingAction !== null,
+    pendingAction,
     restoring: authenticationStatus === "restoring",
     authenticated: authenticationStatus === "authenticated",
     connect,
     changeWallet,
+    logout,
   };
 }

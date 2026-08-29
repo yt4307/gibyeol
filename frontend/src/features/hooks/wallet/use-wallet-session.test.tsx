@@ -89,6 +89,27 @@ describe("useWalletSession", () => {
     expect(persisted).not.toContain("token");
   });
 
+  it("logs out from the server and clears the persisted wallet", async () => {
+    cacheWalletSession();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ walletAddress: address }) })
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+
+    await act(async () => { await result.current.logout(); });
+
+    expect(result.current.authenticated).toBe(false);
+    expect(result.current.session).toBeNull();
+    expect(window.localStorage.getItem("gibyeol:wallet-session")).not.toContain(address);
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining("/auth/logout"), {
+      method: "POST",
+      credentials: "include",
+    });
+  });
+
   it("shows the wallet request stage and JSON-RPC details", async () => {
     const providerError = { code: -32603, message: "Internal JSON-RPC error." };
     (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
