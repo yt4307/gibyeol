@@ -84,7 +84,7 @@ final class AuthController
     #[Route('/api/v1/auth/logout', name: 'api_v1_auth_logout', methods: ['POST'])]
     public function logout(Request $request, AuthService $auth): JsonResponse
     {
-        $token = $request->cookies->get($this->sessionCookieName);
+        $token = $request->attributes->get('_session_token');
         $auth->logout(is_string($token) ? $token : null);
         $response = new JsonResponse(['ok' => true]);
         $response->headers->clearCookie(

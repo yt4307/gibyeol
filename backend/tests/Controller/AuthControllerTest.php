@@ -75,6 +75,67 @@ final class AuthControllerTest extends WebTestCase
         }
     }
 
+    public function testSessionRestoresFromValidDuplicateCookie(): void
+    {
+        $client = self::createClient();
+        $expiredToken = str_repeat('a', 43);
+        $validToken = str_repeat('b', 43);
+        $walletAddress = '0x2222222222222222222222222222222222222222';
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertInstanceOf(Connection::class, $connection);
+        $connection->delete('sessions', ['token_hash' => hash('sha256', $validToken, true)]);
+        $connection->insert('sessions', [
+            'token_hash' => hash('sha256', $validToken, true),
+            'wallet_address' => $walletAddress,
+            'expires_at' => '2099-12-31 23:59:59.000000',
+            'created_at' => '2026-08-29 00:00:00.000000',
+            'last_seen_at' => '2026-08-29 00:00:00.000000',
+        ]);
+
+        try {
+            $client->request('GET', '/api/v1/auth/session', server: [
+                'HTTP_ORIGIN' => self::ORIGIN,
+                'HTTP_COOKIE' => "gibyeol_session={$expiredToken}; gibyeol_session={$validToken}",
+            ]);
+
+            self::assertResponseIsSuccessful();
+            self::assertJsonStringEqualsJsonString(
+                json_encode(['walletAddress' => $walletAddress], JSON_THROW_ON_ERROR),
+                (string) $client->getResponse()->getContent(),
+            );
+        } finally {
+            $connection->delete('sessions', ['token_hash' => hash('sha256', $validToken, true)]);
+        }
+    }
+
+    public function testLogoutDeletesTheValidDuplicateSession(): void
+    {
+        $client = self::createClient();
+        $expiredToken = str_repeat('a', 43);
+        $validToken = str_repeat('c', 43);
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertInstanceOf(Connection::class, $connection);
+        $connection->delete('sessions', ['token_hash' => hash('sha256', $validToken, true)]);
+        $connection->insert('sessions', [
+            'token_hash' => hash('sha256', $validToken, true),
+            'wallet_address' => '0x3333333333333333333333333333333333333333',
+            'expires_at' => '2099-12-31 23:59:59.000000',
+            'created_at' => '2026-08-29 00:00:00.000000',
+            'last_seen_at' => '2026-08-29 00:00:00.000000',
+        ]);
+
+        $client->request('POST', '/api/v1/auth/logout', server: [
+            'HTTP_ORIGIN' => self::ORIGIN,
+            'HTTP_COOKIE' => "gibyeol_session={$expiredToken}; gibyeol_session={$validToken}",
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertFalse($connection->fetchOne(
+            'SELECT 1 FROM sessions WHERE token_hash = ?',
+            [hash('sha256', $validToken, true)],
+        ));
+    }
+
     public function testChallengeRateLimitRejectsEleventhRequestFromSameClient(): void
     {
         $client = self::createClient();

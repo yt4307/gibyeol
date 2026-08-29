@@ -13,7 +13,7 @@ final class SessionSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly AuthService $auth,
-        private readonly string $sessionCookieName,
+        private readonly SessionCookieReader $sessionCookieReader,
     ) {
     }
 
@@ -28,13 +28,13 @@ final class SessionSubscriber implements EventSubscriberInterface
         if (!str_starts_with($request->getPathInfo(), '/api/v1/')) {
             return;
         }
-        $token = $request->cookies->get($this->sessionCookieName);
-        if (!is_string($token)) {
-            return;
-        }
-        $walletAddress = $this->auth->resolveSession($token);
-        if (null !== $walletAddress) {
-            $request->attributes->set('_wallet_address', $walletAddress);
+        foreach ($this->sessionCookieReader->tokens($request) as $token) {
+            $walletAddress = $this->auth->resolveSession($token);
+            if (null !== $walletAddress) {
+                $request->attributes->set('_wallet_address', $walletAddress);
+                $request->attributes->set('_session_token', $token);
+                return;
+            }
         }
     }
 }

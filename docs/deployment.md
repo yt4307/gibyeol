@@ -35,7 +35,7 @@ RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리
 | `UNLOCK_AT` | 예 | `1798124400` |
 | `PACKAGE_STORAGE_PATH` | 아니오 | web root 밖 absolute path |
 | `DATABASE_URL` | 아니오 | MySQL credential |
-| `SESSION_COOKIE_NAME` | 예 | 기본 `gibyeol_session` |
+| `SESSION_COOKIE_NAME` | 예 | 로컬 기본 `gibyeol_session`, 닷홈 운영 기본 `__Host-gibyeol_session_v2` |
 | `EMAIL_ENCRYPTION_KEY` | 아니오 | 32-byte server key |
 | `EMAIL_LOOKUP_KEY` | 아니오 | HMAC key, encryption key와 분리 |
 | `RECOVERY_PRIVATE_KEY` | 아니오 | X25519 private key |
