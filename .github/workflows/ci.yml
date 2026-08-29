@@ -47,7 +47,14 @@ jobs:
       - name: Compose 구성 검증
         run: docker compose -f docker-compose.dev.yml config --quiet
 
+      - name: 백엔드 테스트 DB 준비
+        env:
+          DEV_MYSQL_PORT: "0"
+        run: docker compose -f docker-compose.dev.yml up -d --wait db
+
       - name: 백엔드 검증
+        env:
+          DEV_MYSQL_PORT: "0"
         run: |
           docker compose -f docker-compose.dev.yml run --rm --no-deps backend composer install --no-interaction --prefer-dist --no-progress
           docker compose -f docker-compose.dev.yml run --rm --no-deps backend composer validate --strict
@@ -56,8 +63,17 @@ jobs:
             backend php bin/console cache:clear --env=test
           docker compose -f docker-compose.dev.yml run --rm --no-deps \
             -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
+            backend php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+          docker compose -f docker-compose.dev.yml run --rm --no-deps \
+            -e APP_ENV=test -e APP_DEBUG=0 -e WEB_ORIGIN=https://yt4307.github.io \
             backend composer test
           pnpm verify:migrations
+
+      - name: 백엔드 테스트 DB 정리
+        if: always()
+        env:
+          DEV_MYSQL_PORT: "0"
+        run: docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
       - name: 컨트랙트 검증
         run: |
