@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: pnpm 준비
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Node.js 준비
         uses: actions/setup-node@v6
