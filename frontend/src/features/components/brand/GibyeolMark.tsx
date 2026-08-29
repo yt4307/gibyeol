@@ -25,13 +25,12 @@ export function GibyeolMark({ size = 44, variant = "sealed", className, priority
       alt=""
       aria-hidden="true"
       priority={priority}
+      style={{ width: size, height: "auto" }}
     />
   );
 }
 
 const Mark = styled(Image)`
   flex: 0 0 auto;
-  width: auto;
-  height: auto;
   object-fit: contain;
 `;
