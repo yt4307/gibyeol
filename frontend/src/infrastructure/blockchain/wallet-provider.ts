@@ -9,24 +9,29 @@ export type ConnectedWalletProvider = {
 
 export type ConnectWalletProviderOptions = {
   replaceSession?: boolean;
+  connector?: WalletConnector | "auto";
 };
 
 type WalletConnectProvider = BrowserProvider & {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   session?: {
-    namespaces: Record<string, { methods?: string[] }>;
+    namespaces: Record<string, { methods?: string[]; events?: string[] }>;
   };
 };
 
 const walletConnectMethods = [
   "eth_requestAccounts",
+  "eth_sendTransaction",
   "personal_sign",
   "wallet_switchEthereumChain",
   "wallet_addEthereumChain",
 ] as const;
 
+const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
+
 let activeProvider: BrowserProvider | undefined;
+let activeConnector: WalletConnector | undefined;
 
 export function injectedWalletProvider(): BrowserProvider | undefined {
   return (window as typeof window & { ethereum?: BrowserProvider }).ethereum;
@@ -36,11 +41,18 @@ export function activeWalletProvider(): BrowserProvider | undefined {
   return activeProvider ?? injectedWalletProvider();
 }
 
+export function activeWalletConnector(): WalletConnector | undefined {
+  return activeConnector ?? (injectedWalletProvider() ? "injected" : undefined);
+}
+
 export async function connectWalletProvider(
-  { replaceSession = false }: ConnectWalletProviderOptions = {},
+  { replaceSession = false, connector = "auto" }: ConnectWalletProviderOptions = {},
 ): Promise<ConnectedWalletProvider> {
   const injected = injectedWalletProvider();
-  if (injected) {
+  if (connector === "injected" && !injected) {
+    throw new Error("브라우저에 설치된 지갑을 찾을 수 없습니다.");
+  }
+  if (injected && connector !== "walletconnect") {
     if (replaceSession) {
       await injected.request({
         method: "wallet_requestPermissions",
@@ -48,6 +60,7 @@ export async function connectWalletProvider(
       });
     }
     activeProvider = injected;
+    activeConnector = "injected";
     return { connector: "injected", provider: injected };
   }
 
@@ -63,6 +76,7 @@ export async function connectWalletProvider(
     projectId,
     optionalChains: [configuredChainId],
     optionalMethods: [...walletConnectMethods],
+    optionalEvents: [...walletConnectEvents],
     rpcMap: {
       [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
     },
@@ -78,8 +92,13 @@ export async function connectWalletProvider(
   const approvedMethods = new Set(
     Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.methods ?? []),
   );
+  const approvedEvents = new Set(
+    Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.events ?? []),
+  );
   const staleSession = Boolean(provider.session) && (
-    replaceSession || walletConnectMethods.some((method) => !approvedMethods.has(method))
+    replaceSession
+    || walletConnectMethods.some((method) => !approvedMethods.has(method))
+    || walletConnectEvents.some((event) => !approvedEvents.has(event))
   );
   if (staleSession) {
     await provider.disconnect();
@@ -88,9 +107,11 @@ export async function connectWalletProvider(
     await provider.connect();
   }
   activeProvider = provider;
+  activeConnector = "walletconnect";
   return { connector: "walletconnect", provider };
 }
 
 export function clearActiveWalletProvider(): void {
   activeProvider = undefined;
+  activeConnector = undefined;
 }
