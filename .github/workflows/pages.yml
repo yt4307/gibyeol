@@ -34,7 +34,7 @@ jobs:
 
       - name: Pages 준비
         if: vars.ENABLE_PAGES_DEPLOY == 'true'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
@@ -61,7 +61,7 @@ jobs:
         run: pnpm --filter @gibyeol/frontend verify:pages-artifact
 
       - name: Pages 산출물 업로드
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: frontend/out
 
@@ -77,4 +77,4 @@ jobs:
     steps:
       - name: Pages 배포
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
