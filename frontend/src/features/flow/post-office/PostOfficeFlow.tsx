@@ -33,7 +33,20 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
       <p>지갑으로 본인을 확인하고, Passkey로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p>
     </Intro>
     <Workspace>
-      <WalletPanel address={wallet.session?.address} busy={wallet.busy} pendingAction={wallet.pendingAction} restoring={wallet.restoring} error={wallet.error} onConnect={() => { void wallet.connect(); }} onChangeWallet={() => { void wallet.changeWallet(); }} onLogout={() => { void wallet.logout(); }} />
+      <WalletPanel
+        address={wallet.session?.address}
+        availableAccounts={wallet.availableAccounts}
+        busy={wallet.busy}
+        pendingAction={wallet.pendingAction}
+        restoring={wallet.restoring}
+        error={wallet.error}
+        onConnect={() => { void wallet.connect().catch(() => undefined); }}
+        onSelectAccount={(address) => { void wallet.selectAccount(address).catch(() => undefined); }}
+        onCancelAccountSelection={wallet.cancelAccountSelection}
+        onChangeAccount={() => { void wallet.changeAccount().catch(() => undefined); }}
+        onChangeWallet={() => { void wallet.changeWallet().catch(() => undefined); }}
+        onLogout={() => { void wallet.logout(); }}
+      />
       {authenticatedAddress && <MailboxOnboarding keyId={mailbox.keyId} active={mailbox.active} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} onDeactivate={() => { void mailbox.deactivate(); }} />}
       {mailboxReady && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
       {mailboxReady && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? mailbox.active ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}

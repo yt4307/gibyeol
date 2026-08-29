@@ -1,10 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chainId, walletChainName } from "@/infrastructure/blockchain/config";
+import { clearActiveWalletProvider } from "@/infrastructure/blockchain/wallet-provider";
 import { useAppStore } from "@/stores/use-app-store";
 import { useWalletSession } from "./use-wallet-session";
 
 const address = "0x1111111111111111111111111111111111111111" as const;
+const secondAddress = "0x2222222222222222222222222222222222222222" as const;
 
 function cacheWalletSession() {
   window.localStorage.setItem("gibyeol:wallet-session", JSON.stringify({
@@ -16,8 +18,13 @@ function cacheWalletSession() {
 describe("useWalletSession", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    clearActiveWalletProvider();
     delete (window as typeof window & { ethereum?: unknown }).ethereum;
     useAppStore.setState({ walletSession: null, authenticationStatus: "restoring" });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("restores the persisted wallet after the server validates its cookie", async () => {
@@ -74,6 +81,34 @@ describe("useWalletSession", () => {
     await waitFor(() => expect(result.current.restoring).toBe(false));
     expect(result.current.session).toBeNull();
     expect(result.current.authenticated).toBe(false);
+  });
+
+  it("keeps the session when a mobile wallet briefly reports an empty account list", async () => {
+    cacheWalletSession();
+    let accountsChanged: (() => void) | undefined;
+    const provider = {
+      request: vi.fn().mockResolvedValue([address]),
+      on: vi.fn((_event: string, listener: () => void) => { accountsChanged = listener; }),
+      removeListener: vi.fn(),
+    };
+    (window as typeof window & { ethereum?: typeof provider }).ethereum = provider;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ walletAddress: address }),
+    }));
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+    await waitFor(() => expect(accountsChanged).toBeTypeOf("function"));
+
+    vi.useFakeTimers();
+    await act(async () => {
+      accountsChanged?.();
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(result.current.authenticated).toBe(true);
+    expect(result.current.session?.address).toBe(address);
   });
 
   it("does not persist the authentication token in browser storage", async () => {
@@ -174,6 +209,75 @@ describe("useWalletSession", () => {
         chainName: walletChainName,
       }],
     });
+  });
+
+  it("lets the user choose one of the accounts shared by the wallet", async () => {
+    const request = vi.fn()
+      .mockResolvedValueOnce([address, secondAddress])
+      .mockResolvedValueOnce(`0x${chainId.toString(16)}`)
+      .mockResolvedValueOnce("0xsignature");
+    (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = { request };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Sign in to Gibyeol" }),
+      })
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.restoring).toBe(false));
+
+    await act(async () => { await result.current.connect(); });
+
+    expect(result.current.availableAccounts).toEqual([address, secondAddress]);
+    expect(result.current.authenticated).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => { await result.current.selectAccount(secondAddress); });
+
+    expect(result.current.availableAccounts).toEqual([]);
+    expect(result.current.session?.address).toBe(secondAddress);
+    expect(result.current.authenticated).toBe(true);
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      walletAddress: secondAddress,
+      chainId,
+    });
+    expect(request).toHaveBeenLastCalledWith({
+      method: "personal_sign",
+      params: ["Sign in to Gibyeol", secondAddress],
+    });
+  });
+
+  it("asks an injected wallet to approve accounts again when changing accounts", async () => {
+    cacheWalletSession();
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_accounts") return [address];
+      if (method === "wallet_requestPermissions") return [{ parentCapability: "eth_accounts" }];
+      if (method === "eth_requestAccounts") return [secondAddress];
+      if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
+      if (method === "personal_sign") return "0xsignature";
+      return null;
+    });
+    (window as typeof window & { ethereum?: { request: typeof request } }).ethereum = { request };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ walletAddress: address }) })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Sign in to Gibyeol" }) })
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+
+    await act(async () => { await result.current.changeAccount(); });
+
+    expect(request).toHaveBeenCalledWith({
+      method: "wallet_requestPermissions",
+      params: [{ eth_accounts: {} }],
+    });
+    expect(result.current.session?.address).toBe(secondAddress);
+    expect(result.current.authenticated).toBe(true);
   });
 
   it("shows backend error details from signature verification", async () => {

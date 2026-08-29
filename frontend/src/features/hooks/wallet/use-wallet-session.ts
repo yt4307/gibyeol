@@ -9,15 +9,27 @@ import {
   walletChainName,
 } from "@/infrastructure/blockchain/config";
 import {
+  activeWalletConnector,
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
+  injectedWalletProvider,
 } from "@/infrastructure/blockchain/wallet-provider";
+import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
 import { useAppStore } from "@/stores/use-app-store";
 
 type SessionResponse = { walletAddress: `0x${string}` };
 type ErrorPayload = { error?: { code?: unknown; message?: unknown } };
-export type WalletPendingAction = "connect" | "change" | "logout" | null;
+export type WalletPendingAction = "connect" | "account" | "change" | "logout" | null;
+
+type AuthenticationAction = Exclude<WalletPendingAction, "logout" | null>;
+
+function walletAddresses(value: unknown): `0x${string}`[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .filter(isWalletAddress)
+    .map((address) => address.toLowerCase() as `0x${string}`))];
+}
 
 function isWalletAddress(value: unknown): value is `0x${string}` {
   return typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value);
@@ -100,6 +112,8 @@ export function useWalletSession() {
   const setAuthenticationStatus = useAppStore((state) => state.setAuthenticationStatus);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<WalletPendingAction>(null);
+  const [availableAccounts, setAvailableAccounts] = useState<`0x${string}`[]>([]);
+  const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
@@ -168,27 +182,36 @@ export function useWalletSession() {
     if (!session) return;
     const provider = activeWalletProvider() as EventedWalletProvider;
     if (!provider?.on) return;
+    let confirmationTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const handleAccountsChanged = (accounts: unknown) => {
-      const address = Array.isArray(accounts) && isWalletAddress(accounts[0])
-        ? accounts[0].toLowerCase()
-        : null;
-      if (address !== session.address) forgetSession(true);
+    const handleAccountsChanged = () => {
+      if (confirmationTimer) clearTimeout(confirmationTimer);
+      confirmationTimer = setTimeout(() => {
+        void provider.request({ method: "eth_accounts" })
+          .then((accounts) => {
+            const confirmedAccounts = walletAddresses(accounts);
+            if (confirmedAccounts.includes(session.address)) return;
+            setError(confirmedAccounts.length > 0
+              ? "지갑에서 계정이 변경되었습니다. 변경한 계정으로 다시 로그인해 주세요."
+              : "지갑 연결이 해제되었습니다. 다시 연결해 주세요.");
+            forgetSession(true);
+          })
+          .catch(() => {
+            // 모바일 지갑에서 브라우저로 돌아오는 동안의 일시적인 provider 중단은 무시한다.
+          });
+      }, 1_000);
     };
     provider.on("accountsChanged", handleAccountsChanged);
-    return () => provider.removeListener?.("accountsChanged", handleAccountsChanged);
+    return () => {
+      if (confirmationTimer) clearTimeout(confirmationTimer);
+      provider.removeListener?.("accountsChanged", handleAccountsChanged);
+    };
   }, [forgetSession, session]);
 
-  const authenticate = useCallback(async (replaceWallet = false) => {
-    setPendingAction(replaceWallet ? "change" : "connect");
-    setError(null);
-    try {
-      const { provider } = await connectWalletProvider({ replaceSession: replaceWallet });
-      const accounts = await walletRequest<string[]>(provider, "지갑 계정 연결", {
-        method: "eth_requestAccounts",
-      });
-      const address = accounts[0]?.toLowerCase() as `0x${string}` | undefined;
-      if (!address) throw new Error("연결된 계정이 없습니다.");
+  const authenticateAddress = useCallback(async (
+    provider: NonNullable<ReturnType<typeof activeWalletProvider>>,
+    address: `0x${string}`,
+  ) => {
       const actualChain = Number(await walletRequest<string>(provider, "네트워크 확인", {
         method: "eth_chainId",
       }));
@@ -244,6 +267,28 @@ export function useWalletSession() {
       setSession(next);
       setAuthenticationStatus("authenticated");
       return next;
+  }, [setAuthenticationStatus, setSession]);
+
+  const authenticate = useCallback(async (
+    action: AuthenticationAction = "connect",
+    options: { replaceSession?: boolean; connector?: WalletConnector | "auto" } = {},
+  ) => {
+    setPendingAction(action);
+    setError(null);
+    setAvailableAccounts([]);
+    setAccountSelectionAction(null);
+    try {
+      const { provider } = await connectWalletProvider(options);
+      const accounts = walletAddresses(await walletRequest<string[]>(provider, "지갑 계정 연결", {
+        method: "eth_requestAccounts",
+      }));
+      if (accounts.length === 0) throw new Error("연결된 계정이 없습니다.");
+      if (accounts.length > 1) {
+        setAvailableAccounts(accounts);
+        setAccountSelectionAction(action);
+        return undefined;
+      }
+      return await authenticateAddress(provider, accounts[0]);
     } catch (cause) {
       const message = errorDetails(cause, "지갑 연결에 실패했습니다.");
       setError(message);
@@ -251,22 +296,70 @@ export function useWalletSession() {
     } finally {
       setPendingAction(null);
     }
-  }, [setAuthenticationStatus, setSession]);
+  }, [authenticateAddress]);
 
-  const connect = useCallback(() => authenticate(), [authenticate]);
+  const connect = useCallback(() => authenticate("connect"), [authenticate]);
 
-  const changeWallet = useCallback(async () => {
-    setPendingAction("change");
-    setError(null);
+  const clearAuthenticatedSession = useCallback(async () => {
     await fetch(`${apiBaseUrl}/auth/logout`, {
       method: "POST",
       credentials: "include",
     }).catch(() => undefined);
     setSession(null);
     setAuthenticationStatus("anonymous");
+  }, [setAuthenticationStatus, setSession]);
+
+  const changeAccount = useCallback(async () => {
+    const connector = activeWalletConnector() ?? "auto";
+    await clearAuthenticatedSession();
+    return authenticate("account", { replaceSession: true, connector });
+  }, [authenticate, clearAuthenticatedSession]);
+
+  const changeWallet = useCallback(async () => {
+    const currentConnector = activeWalletConnector();
+    const nextConnector: WalletConnector = currentConnector === "injected"
+      ? "walletconnect"
+      : injectedWalletProvider() ? "injected" : "walletconnect";
+    await clearAuthenticatedSession();
     clearActiveWalletProvider();
-    return authenticate(true);
-  }, [authenticate, setAuthenticationStatus, setSession]);
+    return authenticate("change", {
+      replaceSession: nextConnector === "walletconnect",
+      connector: nextConnector,
+    });
+  }, [authenticate, clearAuthenticatedSession]);
+
+  const selectAccount = useCallback(async (address: string) => {
+    const normalizedAddress = address.toLowerCase() as `0x${string}`;
+    if (!availableAccounts.includes(normalizedAddress)) {
+      setError("선택할 수 없는 지갑 계정입니다.");
+      return undefined;
+    }
+    const provider = activeWalletProvider();
+    if (!provider) {
+      setError("연결된 지갑을 찾을 수 없습니다. 다시 연결해 주세요.");
+      return undefined;
+    }
+
+    setPendingAction(accountSelectionAction ?? "connect");
+    setError(null);
+    try {
+      const next = await authenticateAddress(provider, normalizedAddress);
+      setAvailableAccounts([]);
+      setAccountSelectionAction(null);
+      return next;
+    } catch (cause) {
+      setError(errorDetails(cause, "선택한 계정으로 로그인하지 못했습니다."));
+      throw cause;
+    } finally {
+      setPendingAction(null);
+    }
+  }, [accountSelectionAction, authenticateAddress, availableAccounts]);
+
+  const cancelAccountSelection = useCallback(() => {
+    setAvailableAccounts([]);
+    setAccountSelectionAction(null);
+    setError(null);
+  }, []);
 
   const logout = useCallback(async () => {
     setPendingAction("logout");
@@ -292,9 +385,13 @@ export function useWalletSession() {
     error,
     busy: pendingAction !== null,
     pendingAction,
+    availableAccounts,
     restoring: authenticationStatus === "restoring",
     authenticated: authenticationStatus === "authenticated",
     connect,
+    selectAccount,
+    cancelAccountSelection,
+    changeAccount,
     changeWallet,
     logout,
   };
