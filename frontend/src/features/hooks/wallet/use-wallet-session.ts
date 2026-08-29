@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiBaseUrl, chain, chainId, rpcUrl } from "@/infrastructure/blockchain/config";
+import {
+  apiBaseUrl,
+  chain,
+  chainId,
+  rpcUrl,
+  walletChainName,
+} from "@/infrastructure/blockchain/config";
 import {
   activeWalletProvider,
   clearActiveWalletProvider,
@@ -198,7 +204,7 @@ export function useWalletSession() {
             method: "wallet_addEthereumChain",
             params: [{
               chainId: chainIdHex,
-              chainName: chain.name,
+              chainName: walletChainName,
               nativeCurrency: chain.nativeCurrency,
               rpcUrls: [rpcUrl],
               blockExplorerUrls: chain.blockExplorers ? [chain.blockExplorers.default.url] : undefined,

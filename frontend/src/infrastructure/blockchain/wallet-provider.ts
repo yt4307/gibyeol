@@ -9,7 +9,18 @@ export type ConnectedWalletProvider = {
 
 type WalletConnectProvider = BrowserProvider & {
   connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  session?: {
+    namespaces: Record<string, { methods?: string[] }>;
+  };
 };
+
+const walletConnectMethods = [
+  "eth_requestAccounts",
+  "personal_sign",
+  "wallet_switchEthereumChain",
+  "wallet_addEthereumChain",
+] as const;
 
 let activeProvider: BrowserProvider | undefined;
 
@@ -35,12 +46,13 @@ export async function connectWalletProvider(): Promise<ConnectedWalletProvider> 
 
   const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
   const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;
+  const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
   const provider = (await EthereumProvider.init({
     projectId,
-    chains: [Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337")],
+    optionalChains: [configuredChainId],
+    optionalMethods: [...walletConnectMethods],
     rpcMap: {
-      [Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337")]:
-        process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
+      [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
     },
     metadata: {
       name: "기별",
@@ -51,7 +63,15 @@ export async function connectWalletProvider(): Promise<ConnectedWalletProvider> 
     showQrModal: true,
   })) as WalletConnectProvider;
 
-  if (!(provider as WalletConnectProvider & { connected?: boolean }).connected) {
+  const approvedMethods = new Set(
+    Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.methods ?? []),
+  );
+  const staleSession = Boolean(provider.session)
+    && walletConnectMethods.some((method) => !approvedMethods.has(method));
+  if (staleSession) {
+    await provider.disconnect();
+  }
+  if (!provider.session) {
     await provider.connect();
   }
   activeProvider = provider;

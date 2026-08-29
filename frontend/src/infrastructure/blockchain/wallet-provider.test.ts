@@ -60,8 +60,9 @@ describe("wallet provider selection", () => {
   it("opens WalletConnect and keeps its provider for later transactions", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider = {
-      connected: false,
+      session: undefined,
       connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
       request: vi.fn(),
     };
     mocks.init.mockResolvedValue(provider);
@@ -70,7 +71,13 @@ describe("wallet provider selection", () => {
 
     expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({
       projectId: "project-id",
-      chains: [84532],
+      optionalChains: [84532],
+      optionalMethods: [
+        "eth_requestAccounts",
+        "personal_sign",
+        "wallet_switchEthereumChain",
+        "wallet_addEthereumChain",
+      ],
       rpcMap: { 84532: "https://sepolia.base.org" },
       metadata: expect.objectContaining({
         name: "기별",
@@ -81,5 +88,26 @@ describe("wallet provider selection", () => {
     expect(provider.connect).toHaveBeenCalledOnce();
     expect(connected).toEqual({ connector: "walletconnect", provider });
     expect(activeWalletProvider()).toBe(provider);
+  });
+
+  it("reconnects a persisted session that lacks chain management methods", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider: {
+      session?: { namespaces: Record<string, { methods: string[] }> };
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: ReturnType<typeof vi.fn>;
+    } = {
+      session: { namespaces: { eip155: { methods: ["personal_sign"] } } },
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider();
+
+    expect(provider.disconnect).toHaveBeenCalledOnce();
+    expect(provider.connect).toHaveBeenCalledOnce();
   });
 });

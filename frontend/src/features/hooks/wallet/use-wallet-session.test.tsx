@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { chainId } from "@/infrastructure/blockchain/config";
+import { chainId, walletChainName } from "@/infrastructure/blockchain/config";
 import { useAppStore } from "@/stores/use-app-store";
 import { useWalletSession } from "./use-wallet-session";
 
@@ -148,7 +148,10 @@ describe("useWalletSession", () => {
       "personal_sign",
     ]);
     expect(request.mock.calls[3]?.[0]).toMatchObject({
-      params: [{ chainId: `0x${chainId.toString(16)}` }],
+      params: [{
+        chainId: `0x${chainId.toString(16)}`,
+        chainName: walletChainName,
+      }],
     });
   });
 
