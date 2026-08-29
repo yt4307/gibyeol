@@ -1,4 +1,11 @@
 export const palette = {
+  identity: {
+    midnightNavy: "#0D1321",
+    deepBlue: "#121C2E",
+    starlightWhite: "#F5F6FA",
+    sealingRed: "#A6463E",
+    stardustGold: "#D9C7A3",
+  },
   neutral: {
     100: "#fffdf8",
     200: "#f7f3ea",

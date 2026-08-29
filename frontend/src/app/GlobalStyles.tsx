@@ -10,6 +10,13 @@ const globalStyles = css`
   :root {
     color-scheme: light;
 
+    /* Gibyeol identity */
+    --color-identity-midnight-navy: ${palette.identity.midnightNavy};
+    --color-identity-deep-blue: ${palette.identity.deepBlue};
+    --color-identity-starlight-white: ${palette.identity.starlightWhite};
+    --color-identity-sealing-red: ${palette.identity.sealingRed};
+    --color-identity-stardust-gold: ${palette.identity.stardustGold};
+
     /* Neutral */
     --color-neutral-100: ${palette.neutral[100]};
     --color-neutral-200: ${palette.neutral[200]};
