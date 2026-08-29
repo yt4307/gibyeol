@@ -1,14 +1,14 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { GibyeolMark } from "@features/components/brand/GibyeolMark";
+import { GibyeolLogo } from "@features/components/brand/GibyeolLogo";
 
 export type BrandWordmarkProps = {
   children?: string;
 };
 
 export function BrandWordmark({ children = "기별" }: BrandWordmarkProps) {
-  return <Wordmark aria-label="기별"><GibyeolMark size={42} /><Name>{children}</Name></Wordmark>;
+  return <Wordmark aria-label="기별"><GibyeolLogo size={34} priority /><Name>{children}</Name></Wordmark>;
 }
 
 const Wordmark = styled.span`

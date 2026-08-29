@@ -4,6 +4,8 @@ const outputDirectory = new URL("../out/", import.meta.url);
 const requiredFiles = [
   "index.html",
   "favicon.ico",
+  "brand/gibyeol-logo.svg",
+  "brand/gibyeol-app-icon.svg",
   "send/index.html",
   "inbox/index.html",
   "manifest.webmanifest",

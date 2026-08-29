@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: `${basePath}/`,
     scope: `${basePath}/`,
     display: "standalone",
-    background_color: "#0D1321",
+    background_color: "#0B1320",
     theme_color: "#0D1321",
     lang: "ko-KR",
     icons: [
@@ -27,6 +27,18 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
+      },
+      {
+        src: `${basePath}/icons/pwa-192x192.png`,
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: `${basePath}/icons/pwa-512x512.png`,
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };
