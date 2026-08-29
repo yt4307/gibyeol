@@ -8,7 +8,7 @@ const horizontalOverscrollBehavior =
 
 const globalStyles = css`
   :root {
-    color-scheme: light;
+    color-scheme: dark;
 
     /* Gibyeol identity */
     --color-identity-midnight-navy: ${palette.identity.midnightNavy};
@@ -32,7 +32,7 @@ const globalStyles = css`
     --color-neutral-1200: ${palette.neutral[1200]};
     --color-neutral-1300: ${palette.neutral[1300]};
 
-    /* Brand blue */
+    /* Stardust gold */
     --color-brand-100: ${palette.brand[100]};
     --color-brand-200: ${palette.brand[200]};
     --color-brand-300: ${palette.brand[300]};
@@ -44,7 +44,7 @@ const globalStyles = css`
     --color-brand-900: ${palette.brand[900]};
     --color-brand-1000: ${palette.brand[1000]};
 
-    /* Secondary green */
+    /* Sealing red */
     --color-secondary-100: ${palette.secondary[100]};
     --color-secondary-200: ${palette.secondary[200]};
     --color-secondary-300: ${palette.secondary[300]};
@@ -61,25 +61,32 @@ const globalStyles = css`
     --color-error: ${palette.status.error};
     --color-success: ${palette.status.success};
     --color-info: var(--color-brand-800);
+    --color-status-warning: var(--color-warning);
+    --color-status-error: var(--color-error);
+    --color-status-success: var(--color-success);
 
     /* Semantic */
-    --color-app-background: var(--color-neutral-200);
-    --color-surface: var(--color-neutral-100);
-    --color-text: var(--color-neutral-1300);
-    --color-text-muted: var(--color-neutral-900);
-    --color-border: var(--color-neutral-500);
-    --color-accent-primary: var(--color-brand-500);
-    --color-accent-secondary: var(--color-secondary-500);
+    --color-app-background: var(--color-identity-midnight-navy);
+    --color-surface: var(--color-identity-deep-blue);
+    --color-surface-raised: #182338;
+    --color-surface-soft: rgb(245 246 250 / 4%);
+    --color-text: var(--color-identity-starlight-white);
+    --color-text-muted: #a7adba;
+    --color-border: rgb(217 199 163 / 22%);
+    --color-border-strong: rgb(217 199 163 / 48%);
+    --color-accent-primary: var(--color-identity-stardust-gold);
+    --color-accent-secondary: var(--color-identity-sealing-red);
     --color-accent-bridge: ${palette.accent.bridge};
-    --color-accent-soft: var(--color-secondary-200);
+    --color-accent-soft: rgb(217 199 163 / 12%);
+    --shadow-surface: 0 24px 80px rgb(0 0 0 / 28%);
 
     /* Compatibility aliases */
-    --color-black: var(--color-neutral-1300);
-    --color-white: var(--color-neutral-100);
-    --color-gray-50: var(--color-neutral-200);
-    --color-gray-300: var(--color-neutral-500);
-    --color-gray-700: var(--color-neutral-900);
-    --color-green-soft: var(--color-secondary-200);
+    --color-black: var(--color-identity-midnight-navy);
+    --color-white: var(--color-identity-starlight-white);
+    --color-gray-50: var(--color-surface);
+    --color-gray-300: var(--color-neutral-700);
+    --color-gray-700: var(--color-neutral-300);
+    --color-green-soft: rgb(158 191 173 / 12%);
     --color-blue: var(--color-brand-500);
     --color-green: var(--color-secondary-500);
     --color-black-rgb: 0 0 0;
@@ -89,6 +96,9 @@ const globalStyles = css`
     --font-sans:
       var(--font-pretendard), Pretendard, -apple-system, BlinkMacSystemFont,
       "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+    --font-serif:
+      "Iowan Old Style", "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo",
+      "Batang", serif;
     --font-size-fluid-offset: 0rem;
     --font-size-fluid-offset: clamp(
       0rem,
@@ -147,6 +157,7 @@ const globalStyles = css`
     overflow-x: clip;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -179,7 +190,7 @@ const globalStyles = css`
   @media (max-width: ${breakpoints.mobile}px) {
     html,
     body {
-      background: var(--color-surface);
+      background: var(--color-app-background);
     }
   }
 
@@ -240,6 +251,19 @@ const globalStyles = css`
 
   button:disabled {
     cursor: default;
+  }
+
+  input,
+  textarea,
+  select {
+    color: var(--color-text);
+    background: rgb(13 19 33 / 56%);
+    border-color: var(--color-border);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(167 173 186 / 66%);
   }
 
   /* iOS Safari와 WKWebView는 16px 미만 입력에 포커스하면 화면을 확대한다. */

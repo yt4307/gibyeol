@@ -12,7 +12,7 @@ export function PrimaryAction({ href, children }: PrimaryActionProps) {
   return (
     <Action href={href}>
       <span>{children}</span>
-      <Arrow aria-hidden="true">↗</Arrow>
+      <Arrow aria-hidden="true">→</Arrow>
     </Action>
   );
 }
@@ -22,11 +22,12 @@ const Action = styled(Link)`
   gap: var(--space-3);
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 var(--space-5);
-  color: var(--color-white);
-  background: var(--color-neutral-1300);
-  border-radius: 999px;
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  color: var(--color-identity-midnight-navy);
+  background: var(--color-accent-primary);
+  border: 1px solid var(--color-accent-primary);
+  border-radius: 3px;
   font-size: var(--font-size-200);
   font-weight: 500;
   transition:
@@ -34,7 +35,8 @@ const Action = styled(Link)`
     background-color 160ms ease;
 
   &:hover {
-    background: var(--color-brand-800);
+    color: var(--color-accent-primary);
+    background: transparent;
     transform: translateY(-2px);
   }
 
@@ -44,6 +46,6 @@ const Action = styled(Link)`
 `;
 
 const Arrow = styled.span`
-  font-size: 1.1em;
+  font-size: 1.25em;
   line-height: 1;
 `;

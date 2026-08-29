@@ -21,9 +21,9 @@ const Pill = styled.span`
   align-items: center;
   min-height: 32px;
   padding: 0 var(--space-3);
-  color: var(--color-secondary-900);
-  background: var(--color-secondary-200);
-  border: 1px solid var(--color-secondary-300);
+  color: var(--color-accent-primary);
+  background: rgb(217 199 163 / 7%);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
   font-size: var(--font-size-100);
   font-weight: 500;
@@ -32,7 +32,7 @@ const Pill = styled.span`
 const Dot = styled.span`
   width: 6px;
   height: 6px;
-  background: var(--color-secondary-600);
+  background: var(--color-accent-primary);
   border-radius: 50%;
-  box-shadow: 0 0 0 4px rgb(86 139 89 / 12%);
+  box-shadow: 0 0 0 4px rgb(217 199 163 / 10%);
 `;

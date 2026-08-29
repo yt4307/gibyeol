@@ -33,7 +33,10 @@ export function HomeHero({ content }: HomeHeroProps) {
           <Eyebrow>{content.eyebrow}</Eyebrow>
           <Title>{content.title}</Title>
           <Description>{content.description}</Description>
-          <PrimaryAction href="/send">{content.actionLabel}</PrimaryAction>
+          <Actions>
+            <PrimaryAction href="/send">{content.actionLabel}</PrimaryAction>
+            <TextLink href="#about">기별에 대하여 ↓</TextLink>
+          </Actions>
         </Copy>
 
         <LetterPreview
@@ -54,13 +57,30 @@ export function HomeHero({ content }: HomeHeroProps) {
 }
 
 const Shell = styled.main`
+  position: relative;
   width: 100%;
   min-height: 100vh;
+  overflow: hidden;
   padding: var(--space-6) clamp(var(--space-5), 5vw, var(--space-16));
   background:
-    radial-gradient(circle at 8% 8%, rgb(224 239 223 / 76%), transparent 28%),
-    radial-gradient(circle at 92% 10%, rgb(220 232 255 / 84%), transparent 30%),
+    radial-gradient(circle at 78% 24%, rgb(217 199 163 / 9%), transparent 19%),
+    radial-gradient(circle at 8% 4%, rgb(39 60 92 / 48%), transparent 34%),
+    linear-gradient(145deg, var(--color-identity-midnight-navy), #0a101c 76%),
     var(--color-app-background);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle, rgb(245 246 250 / 70%) 0 1px, transparent 1.4px),
+      radial-gradient(circle, rgb(217 199 163 / 60%) 0 1px, transparent 1.4px);
+    background-position: 0 0, 31px 17px;
+    background-size: 127px 127px, 191px 191px;
+    content: "";
+    opacity: .22;
+    mask-image: linear-gradient(to bottom, black, transparent 78%);
+  }
 `;
 
 const Header = styled.header`
@@ -70,11 +90,15 @@ const Header = styled.header`
   justify-content: space-between;
   width: min(100%, 1180px);
   margin: 0 auto;
+  position: relative;
+  z-index: 2;
 `;
 
 const HeroGrid = styled.section`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+  position: relative;
+  z-index: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
   gap: clamp(var(--space-8), 7vw, 96px);
   align-items: center;
   width: min(100%, 1180px);
@@ -96,20 +120,22 @@ const Copy = styled.div`
 `;
 
 const Eyebrow = styled.p`
-  color: var(--color-brand-800);
+  color: var(--color-accent-primary);
   font-size: var(--font-size-100);
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0.18em;
 `;
 
 const Title = styled.h1`
-  max-width: 9ch;
+  max-width: 11ch;
   margin-top: var(--space-5);
   white-space: pre-line;
-  font-size: clamp(3rem, 8vw, 6.8rem);
-  font-weight: 300;
-  line-height: 0.98;
-  letter-spacing: -0.075em;
+  color: var(--color-text);
+  font-family: var(--font-serif);
+  font-size: clamp(3rem, 7.4vw, 6.6rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
   text-wrap: balance;
 `;
 
@@ -122,14 +148,37 @@ const Description = styled.p`
   word-break: keep-all;
 `;
 
+const Actions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: center;
+`;
+
+const TextLink = styled.a`
+  padding: var(--space-3) 0;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-100);
+  letter-spacing: .08em;
+  transition: color 160ms ease, border-color 160ms ease;
+
+  &:hover {
+    color: var(--color-accent-primary);
+    border-color: var(--color-accent-primary);
+  }
+`;
+
 const About = styled.section`
   display: grid;
   grid-template-columns: minmax(140px, 0.35fr) 1fr;
   gap: var(--space-8);
   width: min(100%, 1180px);
+  position: relative;
+  z-index: 1;
   margin: 0 auto;
   padding: clamp(var(--space-12), 8vw, 100px) 0;
-  border-top: 1px solid rgb(17 17 15 / 14%);
+  border-top: 1px solid var(--color-border);
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -144,7 +193,9 @@ const AboutLabel = styled.p`
 `;
 
 const AboutText = styled.p`
-  max-width: 42rem;
+  max-width: 44rem;
+  color: var(--color-neutral-200);
+  font-family: var(--font-serif);
   font-size: clamp(1.35rem, 3vw, 2.2rem);
   font-weight: 300;
   line-height: 1.55;
