@@ -5,11 +5,14 @@ import { activeWalletProvider } from "./wallet-provider";
 export const contractAbi = parseAbi([
   "function currentKeyId(address owner) view returns (uint32)",
   "function mailboxPublicKeys(address owner, uint32 keyId) view returns (bytes32)",
+  "function mailboxActive(address owner) view returns (bool)",
   "function sealedLetters(bytes32 letterId) view returns (bool)",
   "function RECOVERY_PUBLIC_KEY() view returns (bytes32)",
   "function registerMailboxKey(bytes32 publicKey, bytes passkeyEnvelope, bytes recoveryEnvelope)",
+  "function deactivateMailbox()",
   "function sealLetter(bytes32 letterId, address recipient, uint32 recipientKeyId, bytes encryptedText, bytes sealedKey, bytes32 archiveSha256)",
   "event MailboxKeyRegistered(address indexed owner, uint32 indexed keyId, bytes32 publicKey)",
+  "event MailboxDeactivated(address indexed owner, uint32 indexed keyId)",
   "event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)",
 ]);
 

@@ -25,6 +25,19 @@ const asArrayBuffer = (bytes: Uint8Array) => {
 };
 const letterEvent = parseAbiItem("event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)");
 
+async function isMailboxActive(recipient: `0x${string}`, legacyFallback: boolean) {
+  try {
+    return await publicClient.readContract({
+      address: contractAddress,
+      abi: contractAbi,
+      functionName: "mailboxActive",
+      args: [recipient],
+    });
+  } catch {
+    return legacyFallback;
+  }
+}
+
 export function useSendLetter(sender?: `0x${string}`) {
   const [draft, setDraftState] = useState<SendDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,8 +83,13 @@ export function useSendLetter(sender?: `0x${string}`) {
       let working = draft;
       if (working.stage === "DRAFT" || working.stage === "PACKING") {
         const recipient = working.recipient.toLowerCase() as `0x${string}`;
-        const recipientKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
+        const [keyId, recipientActive] = await Promise.all([
+          publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }),
+          isMailboxActive(recipient, true),
+        ]);
+        const recipientKeyId = Number(keyId);
         if (recipientKeyId < 1) throw new Error("받는 분의 메일박스가 아직 없습니다.");
+        if (!recipientActive) throw new Error("받는 분의 메일박스가 비활성화되어 있습니다.");
         working = persist({ ...working, stage: "PACKING", recipient, recipientKeyId });
         try {
           const letterKey = secureRandomBytes(32);
@@ -142,6 +160,8 @@ export function useSendLetter(sender?: `0x${string}`) {
             }
           }
         }
+        const recipientActive = await isMailboxActive(recipient, true);
+        if (!recipientActive) throw new Error("받는 분의 메일박스가 비활성화되어 있습니다.");
         const client = walletClient();
         let hash: `0x${string}` | null = null;
         for (let attempt = 0; attempt < 2; attempt += 1) {

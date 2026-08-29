@@ -93,9 +93,11 @@ describe("useSendLetter", () => {
   it("packs, uploads, seals, and removes the plaintext key after confirmation", async () => {
     mocks.readContract
       .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(`0x${"02".repeat(32)}`)
       .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(1);
 
     const { result } = renderHook(() => useSendLetter(sender));
@@ -149,6 +151,7 @@ describe("useSendLetter", () => {
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(`0x${"04".repeat(32)}`)
       .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(2);
 
     const { result } = renderHook(() => useSendLetter(sender));
@@ -161,7 +164,7 @@ describe("useSendLetter", () => {
   });
 
   it("returns to DRAFT when media preprocessing fails so the attachment can be retried", async () => {
-    mocks.readContract.mockResolvedValueOnce(1);
+    mocks.readContract.mockResolvedValueOnce(1).mockResolvedValueOnce(true);
     mocks.preprocessMediaFiles.mockRejectedValueOnce(new RangeError("사진·영상 소포가 암호화 후 10 MiB를 초과합니다."));
 
     const { result } = renderHook(() => useSendLetter(sender));
@@ -170,6 +173,19 @@ describe("useSendLetter", () => {
     await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("10 MiB");
 
     expect(result.current.draft?.stage).toBe("DRAFT");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mocks.writeContract).not.toHaveBeenCalled();
+  });
+
+  it("rejects an inactive recipient before encrypting or uploading", async () => {
+    mocks.readContract.mockResolvedValueOnce(2).mockResolvedValueOnce(false);
+
+    const { result } = renderHook(() => useSendLetter(sender));
+    await waitFor(() => expect(result.current.draft?.stage).toBe("DRAFT"));
+    act(() => result.current.update({ recipient, message: "크리스마스에 만나요" }));
+    await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("비활성화");
+
+    expect(mocks.preprocessMediaFiles).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
     expect(mocks.writeContract).not.toHaveBeenCalled();
   });

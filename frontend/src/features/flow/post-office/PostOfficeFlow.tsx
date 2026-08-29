@@ -21,14 +21,15 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
   const authenticatedAddress = wallet.authenticated ? wallet.session?.address : undefined;
   const mailbox = useMailboxOnboarding(authenticatedAddress);
   const email = useEmailRegistration(authenticatedAddress);
+  const mailboxReady = Boolean(mailbox.keyId && mailbox.keyId > 0 && mailbox.active);
   return <Shell>
     <Top><BrandWordmark /><DateMark>CHRISTMAS POST · 2026</DateMark></Top>
     <Intro><Eyebrow>미래로 보내는 암호 편지</Eyebrow><h1>오늘의 마음을<br />약속한 날까지.</h1><p>지갑으로 본인을 확인하고, Passkey로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p></Intro>
     <Workspace>
       <WalletPanel address={wallet.session?.address} busy={wallet.busy} pendingAction={wallet.pendingAction} restoring={wallet.restoring} error={wallet.error} onConnect={() => { void wallet.connect(); }} onChangeWallet={() => { void wallet.changeWallet(); }} onLogout={() => { void wallet.logout(); }} />
-      {authenticatedAddress && <MailboxOnboarding keyId={mailbox.keyId} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} />}
-      {mailbox.keyId && mailbox.keyId > 0 && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
-      {mailbox.keyId && mailbox.keyId > 0 && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
+      {authenticatedAddress && <MailboxOnboarding keyId={mailbox.keyId} active={mailbox.active} deactivationSupported={mailbox.deactivationSupported} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void mailbox.register(); }} onDeactivate={() => { void mailbox.deactivate(); }} />}
+      {mailboxReady && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void email.requestCode(value); }} onVerifyCode={(value) => { void email.verifyCode(value); }} />}
+      {mailboxReady && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? mailbox.active ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
     </Workspace>
   </Shell>;
 }

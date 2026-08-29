@@ -6,6 +6,7 @@ const address = "0x1111111111111111111111111111111111111111" as const;
 
 const mocks = vi.hoisted(() => ({
   registerMailbox: vi.fn(),
+  deactivateMailbox: vi.fn(),
   requestCode: vi.fn(),
   verifyCode: vi.fn(),
   useMailboxOnboarding: vi.fn(),
@@ -34,12 +35,15 @@ vi.mock("@features/flow/inbox/InboxFlow", () => ({
 
 import { PostOfficeFlow } from "./PostOfficeFlow";
 
-function setMailboxState(keyId: number | null) {
+function setMailboxState(keyId: number | null, active = Boolean(keyId)) {
   mocks.useMailboxOnboarding.mockReturnValue({
     keyId,
+    active,
+    deactivationSupported: true,
     busy: false,
     error: null,
     register: mocks.registerMailbox,
+    deactivate: mocks.deactivateMailbox,
   });
 }
 
@@ -104,6 +108,25 @@ describe("PostOfficeFlow integration", () => {
     expect(screen.getByText("이메일 인증을 마치면 편지를 보내고 받을 수 있어요.")).toBeTruthy();
     expect(screen.queryByTestId("send-flow")).toBeNull();
     expect(screen.queryByTestId("inbox-flow")).toBeNull();
+  });
+
+  it("deactivates a mailbox and offers reactivation with a new key", () => {
+    useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
+    setMailboxState(2, true);
+    const first = render(<PostOfficeFlow />);
+
+    fireEvent.click(screen.getByRole("button", { name: "메일박스 비활성화" }));
+    expect(mocks.deactivateMailbox).toHaveBeenCalledOnce();
+
+    first.unmount();
+    setMailboxState(2, false);
+    render(<PostOfficeFlow />);
+
+    expect(screen.getByText("메일박스 비활성화됨")).toBeTruthy();
+    expect(screen.queryByText("ARRIVAL EMAIL")).toBeNull();
+    expect(screen.getByText("메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "새 키로 다시 활성화" }));
+    expect(mocks.registerMailbox).toHaveBeenCalledOnce();
   });
 
   it("selects the routed flow and preserves the wallet session across remounts", () => {
