@@ -190,10 +190,10 @@ export function useWalletSession() {
         void provider.request({ method: "eth_accounts" })
           .then((accounts) => {
             const confirmedAccounts = walletAddresses(accounts);
-            if (confirmedAccounts.includes(session.address)) return;
-            setError(confirmedAccounts.length > 0
-              ? "지갑에서 계정이 변경되었습니다. 변경한 계정으로 다시 로그인해 주세요."
-              : "지갑 연결이 해제되었습니다. 다시 연결해 주세요.");
+            // 새로고침이나 지갑 앱 복귀 직후에는 WalletConnect가 일시적으로 빈 계정 목록을
+            // 보낼 수 있다. 서버 세션은 유효하므로 실제 다른 주소가 확인될 때만 해제한다.
+            if (confirmedAccounts.length === 0 || confirmedAccounts.includes(session.address)) return;
+            setError("지갑에서 계정이 변경되었습니다. 변경한 계정으로 다시 로그인해 주세요.");
             forgetSession(true);
           })
           .catch(() => {

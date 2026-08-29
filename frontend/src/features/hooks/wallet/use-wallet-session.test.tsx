@@ -87,7 +87,9 @@ describe("useWalletSession", () => {
     cacheWalletSession();
     let accountsChanged: (() => void) | undefined;
     const provider = {
-      request: vi.fn().mockResolvedValue([address]),
+      request: vi.fn()
+        .mockResolvedValueOnce([address])
+        .mockResolvedValueOnce([]),
       on: vi.fn((_event: string, listener: () => void) => { accountsChanged = listener; }),
       removeListener: vi.fn(),
     };
@@ -109,6 +111,39 @@ describe("useWalletSession", () => {
 
     expect(result.current.authenticated).toBe(true);
     expect(result.current.session?.address).toBe(address);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the session after the wallet confirms a different account", async () => {
+    cacheWalletSession();
+    let accountsChanged: (() => void) | undefined;
+    const provider = {
+      request: vi.fn()
+        .mockResolvedValueOnce([address])
+        .mockResolvedValueOnce([secondAddress]),
+      on: vi.fn((_event: string, listener: () => void) => { accountsChanged = listener; }),
+      removeListener: vi.fn(),
+    };
+    (window as typeof window & { ethereum?: typeof provider }).ethereum = provider;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ walletAddress: address }) })
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+    await waitFor(() => expect(accountsChanged).toBeTypeOf("function"));
+
+    vi.useFakeTimers();
+    await act(async () => {
+      accountsChanged?.();
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(result.current.authenticated).toBe(false);
+    expect(result.current.session).toBeNull();
+    expect(result.current.error).toContain("계정이 변경되었습니다");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("does not persist the authentication token in browser storage", async () => {
