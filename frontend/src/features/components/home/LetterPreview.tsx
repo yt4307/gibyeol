@@ -13,7 +13,7 @@ export function LetterPreview({ label, message }: LetterPreviewProps) {
     <Scene aria-label="크리스마스에 도착할 기별 봉투 미리보기">
       <Glow aria-hidden="true" />
       <Orbit aria-hidden="true" />
-      <Symbol><GibyeolMark variant="open" size={390} priority /></Symbol>
+      <SymbolStage><GibyeolMark variant="open" size={390} priority /></SymbolStage>
       <DeliverySlip>
         <PostalTop>
           <Label>{label}</Label>
@@ -72,7 +72,7 @@ const Orbit = styled.div`
   }
 `;
 
-const Symbol = styled.div`
+const SymbolStage = styled.div`
   position: absolute;
   top: -4%;
   left: 50%;

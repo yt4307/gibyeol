@@ -3,6 +3,7 @@ import { access, readFile } from "node:fs/promises";
 const outputDirectory = new URL("../out/", import.meta.url);
 const requiredFiles = [
   "index.html",
+  "favicon.ico",
   "send/index.html",
   "inbox/index.html",
   "manifest.webmanifest",
