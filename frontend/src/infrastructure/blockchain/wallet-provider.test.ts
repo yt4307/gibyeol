@@ -49,6 +49,18 @@ describe("wallet provider selection", () => {
     expect(mocks.init).not.toHaveBeenCalled();
   });
 
+  it("requests account selection when replacing an injected wallet", async () => {
+    const injected = { request: vi.fn().mockResolvedValue(undefined) } satisfies BrowserProvider;
+    setInjectedProvider(injected);
+
+    await connectWalletProvider({ replaceSession: true });
+
+    expect(injected.request).toHaveBeenCalledWith({
+      method: "wallet_requestPermissions",
+      params: [{ eth_accounts: {} }],
+    });
+  });
+
   it("explains missing WalletConnect configuration when no wallet is injected", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "");
 
@@ -106,6 +118,32 @@ describe("wallet provider selection", () => {
     mocks.init.mockResolvedValue(provider);
 
     await connectWalletProvider();
+
+    expect(provider.disconnect).toHaveBeenCalledOnce();
+    expect(provider.connect).toHaveBeenCalledOnce();
+  });
+
+  it("disconnects an approved WalletConnect session before choosing another wallet", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider: {
+      session?: { namespaces: Record<string, { methods: string[] }> };
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: ReturnType<typeof vi.fn>;
+    } = {
+      session: { namespaces: { eip155: { methods: [
+        "eth_requestAccounts",
+        "personal_sign",
+        "wallet_switchEthereumChain",
+        "wallet_addEthereumChain",
+      ] } } },
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider({ replaceSession: true });
 
     expect(provider.disconnect).toHaveBeenCalledOnce();
     expect(provider.connect).toHaveBeenCalledOnce();

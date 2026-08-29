@@ -7,6 +7,10 @@ export type ConnectedWalletProvider = {
   provider: BrowserProvider;
 };
 
+export type ConnectWalletProviderOptions = {
+  replaceSession?: boolean;
+};
+
 type WalletConnectProvider = BrowserProvider & {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -32,9 +36,17 @@ export function activeWalletProvider(): BrowserProvider | undefined {
   return activeProvider ?? injectedWalletProvider();
 }
 
-export async function connectWalletProvider(): Promise<ConnectedWalletProvider> {
+export async function connectWalletProvider(
+  { replaceSession = false }: ConnectWalletProviderOptions = {},
+): Promise<ConnectedWalletProvider> {
   const injected = injectedWalletProvider();
   if (injected) {
+    if (replaceSession) {
+      await injected.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+    }
     activeProvider = injected;
     return { connector: "injected", provider: injected };
   }
@@ -66,8 +78,9 @@ export async function connectWalletProvider(): Promise<ConnectedWalletProvider> 
   const approvedMethods = new Set(
     Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.methods ?? []),
   );
-  const staleSession = Boolean(provider.session)
-    && walletConnectMethods.some((method) => !approvedMethods.has(method));
+  const staleSession = Boolean(provider.session) && (
+    replaceSession || walletConnectMethods.some((method) => !approvedMethods.has(method))
+  );
   if (staleSession) {
     await provider.disconnect();
   }

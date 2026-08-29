@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { WalletPanel } from "./WalletPanel";
 
-const meta = { title: "Wallet/Components/WalletPanel", component: WalletPanel, args: { onConnect: () => undefined } } satisfies Meta<typeof WalletPanel>;
+const meta = { title: "Wallet/Components/WalletPanel", component: WalletPanel, args: { onConnect: () => undefined, onChangeWallet: () => undefined } } satisfies Meta<typeof WalletPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Disconnected: Story = {};

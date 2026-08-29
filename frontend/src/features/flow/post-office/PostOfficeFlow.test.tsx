@@ -125,7 +125,7 @@ describe("PostOfficeFlow integration", () => {
     first.unmount();
     render(<PostOfficeFlow view="inbox" />);
 
-    expect(screen.getByRole("button", { name: "인증됨" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "지갑 변경" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "받은 기별" }).getAttribute("aria-current")).toBe("page");
     expect(screen.getByTestId("inbox-flow").textContent).toContain(address);
     expect(screen.queryByTestId("send-flow")).toBeNull();

@@ -178,11 +178,11 @@ export function useWalletSession() {
     return () => provider.removeListener?.("accountsChanged", handleAccountsChanged);
   }, [forgetSession, session]);
 
-  const connect = useCallback(async () => {
+  const authenticate = useCallback(async (replaceWallet = false) => {
     setBusy(true);
     setError(null);
     try {
-      const { provider } = await connectWalletProvider();
+      const { provider } = await connectWalletProvider({ replaceSession: replaceWallet });
       const accounts = await walletRequest<string[]>(provider, "지갑 계정 연결", {
         method: "eth_requestAccounts",
       });
@@ -252,6 +252,21 @@ export function useWalletSession() {
     }
   }, [setAuthenticationStatus, setSession]);
 
+  const connect = useCallback(() => authenticate(), [authenticate]);
+
+  const changeWallet = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    await fetch(`${apiBaseUrl}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => undefined);
+    setSession(null);
+    setAuthenticationStatus("anonymous");
+    clearActiveWalletProvider();
+    return authenticate(true);
+  }, [authenticate, setAuthenticationStatus, setSession]);
+
   return {
     session,
     error,
@@ -259,5 +274,6 @@ export function useWalletSession() {
     restoring: authenticationStatus === "restoring",
     authenticated: authenticationStatus === "authenticated",
     connect,
+    changeWallet,
   };
 }
