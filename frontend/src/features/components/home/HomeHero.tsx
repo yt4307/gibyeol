@@ -131,7 +131,7 @@ const Title = styled.h1`
   margin-top: var(--space-5);
   white-space: pre-line;
   color: var(--color-text);
-  font-family: var(--font-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(3rem, 7.4vw, 6.6rem);
   font-weight: 400;
   line-height: 1.08;
@@ -195,9 +195,9 @@ const AboutLabel = styled.p`
 const AboutText = styled.p`
   max-width: 44rem;
   color: var(--color-neutral-200);
-  font-family: var(--font-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(1.35rem, 3vw, 2.2rem);
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.55;
   letter-spacing: -0.04em;
   word-break: keep-all;

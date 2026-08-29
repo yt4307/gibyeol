@@ -138,7 +138,7 @@ const Postmark = styled.span`
 const Message = styled.p`
   margin-top: var(--space-6);
   white-space: pre-line;
-  font-family: var(--font-serif);
+  font-family: var(--font-family-letter);
   font-size: clamp(1.05rem, 3vw, 1.4rem);
   font-weight: 400;
   line-height: 1.55;

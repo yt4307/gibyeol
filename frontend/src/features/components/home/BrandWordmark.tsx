@@ -21,8 +21,8 @@ const Wordmark = styled.span`
 
 const Name = styled.span`
   color: var(--color-text);
-  font-family: var(--font-serif);
+  font-family: var(--font-family-display);
   font-size: 1.35rem;
-  font-weight: 400;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
 `;

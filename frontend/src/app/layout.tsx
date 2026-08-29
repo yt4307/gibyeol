@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import EmotionRegistry from "./EmotionRegistry";
 import GlobalStyles from "./GlobalStyles";
-import { pretendard } from "./fonts";
+import { maruBuri, pretendard } from "./fonts";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ko-KR" className={pretendard.variable}>
+    <html lang="ko-KR" className={`${pretendard.variable} ${maruBuri.variable}`}>
       <body>
         <EmotionRegistry>
           <Providers>

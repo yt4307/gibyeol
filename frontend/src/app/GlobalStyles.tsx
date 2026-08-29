@@ -93,12 +93,18 @@ const globalStyles = css`
     --color-white-rgb: 255 255 255;
 
     /* Typography: base 14px, 2px minor scale */
-    --font-sans:
+    --font-family-body:
       var(--font-pretendard), Pretendard, -apple-system, BlinkMacSystemFont,
       "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
-    --font-serif:
-      "Iowan Old Style", "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo",
-      "Batang", serif;
+    --font-family-display:
+      var(--font-maru-buri), "Maru Buri", "Noto Serif KR", "Nanum Myeongjo",
+      "AppleMyungjo", "Batang", serif;
+    --font-family-letter: var(--font-family-display);
+    --font-family-utility: var(--font-family-body);
+
+    /* Compatibility aliases */
+    --font-sans: var(--font-family-body);
+    --font-serif: var(--font-family-display);
     --font-size-fluid-offset: 0rem;
     --font-size-fluid-offset: clamp(
       0rem,

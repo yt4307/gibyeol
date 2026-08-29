@@ -26,3 +26,20 @@ export const pretendard = localFont({
   variable: "--font-pretendard",
   display: "swap",
 });
+
+export const maruBuri = localFont({
+  src: [
+    {
+      path: "../../public/fonts/maruburi/MaruBuri-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/maruburi/MaruBuri-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+  ],
+  variable: "--font-maru-buri",
+  display: "swap",
+});
