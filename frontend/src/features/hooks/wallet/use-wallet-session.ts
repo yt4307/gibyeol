@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiBaseUrl, chainId } from "@/infrastructure/blockchain/config";
+import { apiBaseUrl, chain, chainId, rpcUrl } from "@/infrastructure/blockchain/config";
 import {
   activeWalletProvider,
   clearActiveWalletProvider,
@@ -34,6 +34,22 @@ function errorDetails(cause: unknown, fallback: string): string {
     : message;
 }
 
+function errorCode(cause: unknown): string | number | undefined {
+  if (typeof cause !== "object" || cause === null) return undefined;
+  const error = cause as { code?: unknown; error?: unknown };
+  if (typeof error.code === "string" || typeof error.code === "number") return error.code;
+  if (typeof error.error !== "object" || error.error === null) return undefined;
+  const nestedCode = (error.error as { code?: unknown }).code;
+  return typeof nestedCode === "string" || typeof nestedCode === "number" ? nestedCode : undefined;
+}
+
+class WalletRequestError extends Error {
+  constructor(message: string, readonly code?: string | number) {
+    super(message);
+    this.name = "WalletRequestError";
+  }
+}
+
 async function walletRequest<T>(
   provider: NonNullable<ReturnType<typeof activeWalletProvider>>,
   stage: string,
@@ -42,7 +58,10 @@ async function walletRequest<T>(
   try {
     return await provider.request(args) as T;
   } catch (cause) {
-    throw new Error(`${stage} 단계 실패: ${errorDetails(cause, "지갑에서 요청을 처리하지 못했습니다.")}`);
+    throw new WalletRequestError(
+      `${stage} 단계 실패: ${errorDetails(cause, "지갑에서 요청을 처리하지 못했습니다.")}`,
+      errorCode(cause),
+    );
   }
 }
 
@@ -167,10 +186,29 @@ export function useWalletSession() {
         method: "eth_chainId",
       }));
       if (actualChain !== chainId) {
-        await walletRequest(provider, "네트워크 전환", {
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${chainId.toString(16)}` }],
-        });
+        const chainIdHex = `0x${chainId.toString(16)}`;
+        try {
+          await walletRequest(provider, "네트워크 전환", {
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }],
+          });
+        } catch (cause) {
+          if (!(cause instanceof WalletRequestError) || Number(cause.code) !== 4902) throw cause;
+          await walletRequest(provider, "네트워크 추가", {
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: chainIdHex,
+              chainName: chain.name,
+              nativeCurrency: chain.nativeCurrency,
+              rpcUrls: [rpcUrl],
+              blockExplorerUrls: chain.blockExplorers ? [chain.blockExplorers.default.url] : undefined,
+            }],
+          });
+          await walletRequest(provider, "네트워크 전환", {
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }],
+          });
+        }
       }
       const challengeResponse = await fetch(`${apiBaseUrl}/auth/challenge`, {
         method: "POST",

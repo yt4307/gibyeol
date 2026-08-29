@@ -117,6 +117,41 @@ describe("useWalletSession", () => {
     expect(result.current.error).toBe("지갑 서명 단계 실패: Internal JSON-RPC error. (코드: -32603)");
   });
 
+  it("adds an unknown chain before switching and signing in", async () => {
+    const request = vi.fn()
+      .mockResolvedValueOnce([address])
+      .mockResolvedValueOnce("0x1")
+      .mockRejectedValueOnce({ code: 4902, message: "Unrecognized chain ID" })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce("0xsignature");
+    (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = { request };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Sign in to Gibyeol" }),
+      })
+      .mockResolvedValueOnce({ ok: true }));
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.restoring).toBe(false));
+
+    await act(async () => { await result.current.connect(); });
+
+    expect(result.current.authenticated).toBe(true);
+    expect(request.mock.calls.map(([args]) => args.method)).toEqual([
+      "eth_requestAccounts",
+      "eth_chainId",
+      "wallet_switchEthereumChain",
+      "wallet_addEthereumChain",
+      "wallet_switchEthereumChain",
+      "personal_sign",
+    ]);
+    expect(request.mock.calls[3]?.[0]).toMatchObject({
+      params: [{ chainId: `0x${chainId.toString(16)}` }],
+    });
+  });
+
   it("shows backend error details from signature verification", async () => {
     (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
       request: vi.fn()
