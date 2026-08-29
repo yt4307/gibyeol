@@ -13,6 +13,7 @@ import {
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
+  connectedWalletProvider,
   injectedWalletProvider,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
@@ -131,6 +132,12 @@ export function useWalletSession() {
     let cancelled = false;
 
     const restore = async () => {
+      const currentState = useAppStore.getState();
+      // App Router의 페이지 이동에서는 이미 검증된 메모리 세션을 그대로 사용한다.
+      // 전체 새로고침으로 메모리가 초기화된 경우에만 저장소와 서버를 다시 확인한다.
+      if (currentState.walletSession && currentState.authenticationStatus === "authenticated") {
+        return;
+      }
       await useAppStore.persist.rehydrate();
       if (cancelled) return;
 
@@ -152,18 +159,6 @@ export function useWalletSession() {
         if (cancelled) return;
         if (!isWalletAddress(restored.walletAddress)) throw new Error("세션 응답이 올바르지 않습니다.");
         const address = restored.walletAddress.toLowerCase() as `0x${string}`;
-        const provider = activeWalletProvider();
-        const accounts = provider
-          ? await provider.request({ method: "eth_accounts" }).catch(() => [])
-          : [];
-        if (cancelled) return;
-        const connectedAddress = Array.isArray(accounts) && isWalletAddress(accounts[0])
-          ? accounts[0].toLowerCase()
-          : null;
-        if (connectedAddress && connectedAddress !== address) {
-          forgetSession(true);
-          return;
-        }
         setSession({ address, authenticated: true });
         setAuthenticationStatus("authenticated");
       } catch {
@@ -180,7 +175,9 @@ export function useWalletSession() {
 
   useEffect(() => {
     if (!session) return;
-    const provider = activeWalletProvider() as EventedWalletProvider;
+    // 새로고침 뒤 발견된 임의의 injected wallet은 SIWE에 사용한 지갑이라는 보장이 없다.
+    // 현재 실행 중 사용자가 명시적으로 연결한 provider의 이벤트만 세션에 반영한다.
+    const provider = connectedWalletProvider() as EventedWalletProvider;
     if (!provider?.on) return;
     let confirmationTimer: ReturnType<typeof setTimeout> | undefined;
 

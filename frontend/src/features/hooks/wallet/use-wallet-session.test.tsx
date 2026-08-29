@@ -1,16 +1,19 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chainId, walletChainName } from "@/infrastructure/blockchain/config";
-import { clearActiveWalletProvider } from "@/infrastructure/blockchain/wallet-provider";
+import {
+  clearActiveWalletProvider,
+  connectWalletProvider,
+} from "@/infrastructure/blockchain/wallet-provider";
 import { useAppStore } from "@/stores/use-app-store";
 import { useWalletSession } from "./use-wallet-session";
 
 const address = "0x1111111111111111111111111111111111111111" as const;
 const secondAddress = "0x2222222222222222222222222222222222222222" as const;
 
-function cacheWalletSession() {
+function cacheWalletSession(cachedAddress: `0x${string}` = address) {
   window.localStorage.setItem("gibyeol:wallet-session", JSON.stringify({
-    state: { walletSession: { address, authenticated: true } },
+    state: { walletSession: { address: cachedAddress, authenticated: true } },
     version: 1,
   }));
 }
@@ -45,6 +48,21 @@ describe("useWalletSession", () => {
     });
   });
 
+  it("keeps an already validated session across client-side page remounts", async () => {
+    useAppStore.setState({
+      walletSession: { address, authenticated: true },
+      authenticationStatus: "authenticated",
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+    expect(result.current.session?.address).toBe(address);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("clears a persisted wallet when the server session has expired", async () => {
     cacheWalletSession();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
@@ -67,33 +85,48 @@ describe("useWalletSession", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("discards a restored session when the injected wallet account has changed", async () => {
+  it("restores the server session without trusting an unrelated injected wallet", async () => {
     cacheWalletSession();
     (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
       request: vi.fn().mockResolvedValue(["0x2222222222222222222222222222222222222222"]),
     };
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ walletAddress: address }) })
-      .mockResolvedValueOnce({ ok: true }));
+    );
 
     const { result } = renderHook(() => useWalletSession());
 
     await waitFor(() => expect(result.current.restoring).toBe(false));
-    expect(result.current.session).toBeNull();
-    expect(result.current.authenticated).toBe(false);
+    expect(result.current.session?.address).toBe(address);
+    expect(result.current.authenticated).toBe(true);
+  });
+
+  it("restores a selected account even when it is not first in the wallet list", async () => {
+    cacheWalletSession(secondAddress);
+    (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
+      request: vi.fn().mockResolvedValue([address, secondAddress]),
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ walletAddress: secondAddress }),
+    }));
+
+    const { result } = renderHook(() => useWalletSession());
+
+    await waitFor(() => expect(result.current.authenticated).toBe(true));
+    expect(result.current.session?.address).toBe(secondAddress);
   });
 
   it("keeps the session when a mobile wallet briefly reports an empty account list", async () => {
     cacheWalletSession();
     let accountsChanged: (() => void) | undefined;
     const provider = {
-      request: vi.fn()
-        .mockResolvedValueOnce([address])
-        .mockResolvedValueOnce([]),
+      request: vi.fn().mockResolvedValue([]),
       on: vi.fn((_event: string, listener: () => void) => { accountsChanged = listener; }),
       removeListener: vi.fn(),
     };
     (window as typeof window & { ethereum?: typeof provider }).ethereum = provider;
+    await connectWalletProvider();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ walletAddress: address }),
@@ -118,13 +151,12 @@ describe("useWalletSession", () => {
     cacheWalletSession();
     let accountsChanged: (() => void) | undefined;
     const provider = {
-      request: vi.fn()
-        .mockResolvedValueOnce([address])
-        .mockResolvedValueOnce([secondAddress]),
+      request: vi.fn().mockResolvedValue([secondAddress]),
       on: vi.fn((_event: string, listener: () => void) => { accountsChanged = listener; }),
       removeListener: vi.fn(),
     };
     (window as typeof window & { ethereum?: typeof provider }).ethereum = provider;
+    await connectWalletProvider();
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ walletAddress: address }) })
       .mockResolvedValueOnce({ ok: true });

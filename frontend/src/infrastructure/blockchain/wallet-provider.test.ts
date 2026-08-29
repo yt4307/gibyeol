@@ -14,6 +14,7 @@ import {
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
+  connectedWalletProvider,
 } from "./wallet-provider";
 
 function setInjectedProvider(provider?: BrowserProvider) {
@@ -48,6 +49,7 @@ describe("wallet provider selection", () => {
     expect(connected).toEqual({ connector: "injected", provider: injected });
     expect(activeWalletProvider()).toBe(injected);
     expect(activeWalletConnector()).toBe("injected");
+    expect(connectedWalletProvider()).toBe(injected);
     expect(mocks.init).not.toHaveBeenCalled();
   });
 

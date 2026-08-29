@@ -41,6 +41,10 @@ export function activeWalletProvider(): BrowserProvider | undefined {
   return activeProvider ?? injectedWalletProvider();
 }
 
+export function connectedWalletProvider(): BrowserProvider | undefined {
+  return activeProvider;
+}
+
 export function activeWalletConnector(): WalletConnector | undefined {
   return activeConnector ?? (injectedWalletProvider() ? "injected" : undefined);
 }
