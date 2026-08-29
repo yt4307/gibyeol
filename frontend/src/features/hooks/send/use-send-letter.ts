@@ -25,17 +25,13 @@ const asArrayBuffer = (bytes: Uint8Array) => {
 };
 const letterEvent = parseAbiItem("event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)");
 
-async function isMailboxActive(recipient: `0x${string}`, legacyFallback: boolean) {
-  try {
-    return await publicClient.readContract({
-      address: contractAddress,
-      abi: contractAbi,
-      functionName: "mailboxActive",
-      args: [recipient],
-    });
-  } catch {
-    return legacyFallback;
-  }
+async function isMailboxActive(recipient: `0x${string}`) {
+  return publicClient.readContract({
+    address: contractAddress,
+    abi: contractAbi,
+    functionName: "mailboxActive",
+    args: [recipient],
+  });
 }
 
 export function useSendLetter(sender?: `0x${string}`) {
@@ -85,7 +81,7 @@ export function useSendLetter(sender?: `0x${string}`) {
         const recipient = working.recipient.toLowerCase() as `0x${string}`;
         const [keyId, recipientActive] = await Promise.all([
           publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }),
-          isMailboxActive(recipient, true),
+          isMailboxActive(recipient),
         ]);
         const recipientKeyId = Number(keyId);
         if (recipientKeyId < 1) throw new Error("받는 분의 메일박스가 아직 없습니다.");
@@ -160,7 +156,7 @@ export function useSendLetter(sender?: `0x${string}`) {
             }
           }
         }
-        const recipientActive = await isMailboxActive(recipient, true);
+        const recipientActive = await isMailboxActive(recipient);
         if (!recipientActive) throw new Error("받는 분의 메일박스가 비활성화되어 있습니다.");
         const client = walletClient();
         let hash: `0x${string}` | null = null;

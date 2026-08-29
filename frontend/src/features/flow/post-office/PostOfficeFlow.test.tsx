@@ -39,7 +39,6 @@ function setMailboxState(keyId: number | null, active = Boolean(keyId)) {
   mocks.useMailboxOnboarding.mockReturnValue({
     keyId,
     active,
-    deactivationSupported: true,
     busy: false,
     error: null,
     register: mocks.registerMailbox,

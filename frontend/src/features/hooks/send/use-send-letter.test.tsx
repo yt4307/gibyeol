@@ -189,4 +189,19 @@ describe("useSendLetter", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(mocks.writeContract).not.toHaveBeenCalled();
   });
+
+  it("rejects the send when the active mailbox lookup fails", async () => {
+    mocks.readContract
+      .mockResolvedValueOnce(2)
+      .mockRejectedValueOnce(new Error("mailboxActive lookup failed"));
+
+    const { result } = renderHook(() => useSendLetter(sender));
+    await waitFor(() => expect(result.current.draft?.stage).toBe("DRAFT"));
+    act(() => result.current.update({ recipient, message: "크리스마스에 만나요" }));
+    await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("mailboxActive lookup failed");
+
+    expect(mocks.preprocessMediaFiles).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mocks.writeContract).not.toHaveBeenCalled();
+  });
 });
