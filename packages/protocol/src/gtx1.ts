@@ -24,10 +24,11 @@ async function transform(
   input: Uint8Array,
   stream: CompressionStream | DecompressionStream,
 ): Promise<Uint8Array> {
+  const output = new Response(stream.readable).arrayBuffer();
   const writer = stream.writable.getWriter();
   await writer.write(new Uint8Array(asArrayBuffer(input)));
   await writer.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+  return new Uint8Array(await output);
 }
 
 export function gzip(input: Uint8Array): Promise<Uint8Array> {

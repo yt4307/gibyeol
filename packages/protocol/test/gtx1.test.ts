@@ -28,6 +28,14 @@ describe("GTX1", () => {
     await expect(decryptTextGtx1(plain, letterKey, context)).resolves.toBe("짧음");
   });
 
+  it("compresses and restores a maximum-length letter without stream backpressure", async () => {
+    const text = "별빛".repeat(24_000);
+    const encrypted = await encryptTextGtx1(text, letterKey, context, () => iv);
+
+    expect(parseGtx1(encrypted).compressed).toBe(true);
+    await expect(decryptTextGtx1(encrypted, letterKey, context)).resolves.toBe(text);
+  });
+
   it("rejects reserved flags, truncated tags, and tampered context", async () => {
     const encrypted = await encryptTextGtx1("인증할 본문", letterKey, context, () => iv);
     const badFlags = encrypted.slice();
