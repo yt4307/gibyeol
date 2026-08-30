@@ -114,7 +114,7 @@ export async function connectWalletProvider(
   }
 
   if (replaceSession && activeWalletConnectProvider) {
-    await disconnectActiveWalletProvider();
+    await disconnectActiveWalletSession();
   }
 
   const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;

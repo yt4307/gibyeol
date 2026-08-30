@@ -250,7 +250,7 @@ describe("wallet provider selection", () => {
     expect(provider.connect).toHaveBeenCalledOnce();
   });
 
-  it("disconnects the active WalletConnect provider before creating its replacement", async () => {
+  it("replaces a WalletConnect session without replacing its SDK instance", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const firstProvider: {
       session?: ReturnType<typeof approvedSession>;
@@ -263,24 +263,15 @@ describe("wallet provider selection", () => {
       disconnect: vi.fn().mockImplementation(async () => { firstProvider.session = undefined; }),
       request: vi.fn(),
     };
-    const replacementProvider: typeof firstProvider = {
-      session: undefined,
-      connect: vi.fn().mockImplementation(async () => { replacementProvider.session = approvedSession(); }),
-      disconnect: vi.fn().mockImplementation(async () => { replacementProvider.session = undefined; }),
-      request: vi.fn(),
-    };
-    mocks.init
-      .mockResolvedValueOnce(firstProvider)
-      .mockResolvedValueOnce(replacementProvider);
+    mocks.init.mockResolvedValue(firstProvider);
 
     await connectWalletProvider();
     const replaced = await connectWalletProvider({ replaceSession: true });
 
-    expect(mocks.init).toHaveBeenCalledTimes(2);
+    expect(mocks.init).toHaveBeenCalledOnce();
     expect(firstProvider.disconnect).toHaveBeenCalledOnce();
-    expect(firstProvider.connect).toHaveBeenCalledOnce();
-    expect(replacementProvider.connect).toHaveBeenCalledOnce();
-    expect(replaced.provider).toBe(replacementProvider);
+    expect(firstProvider.connect).toHaveBeenCalledTimes(2);
+    expect(replaced.provider).toBe(firstProvider);
   });
 
   it("rejects a newly connected session that did not approve personal signing", async () => {

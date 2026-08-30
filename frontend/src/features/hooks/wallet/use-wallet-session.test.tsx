@@ -396,7 +396,7 @@ describe("useWalletSession", () => {
     expect(result.current.pendingSignatureAddress).toBeUndefined();
   });
 
-  it("replaces the WalletConnect provider before changing wallets and signing in again", async () => {
+  it("reuses the WalletConnect client when changing wallets and signing in again", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const request = vi.fn(async ({ method }: { method: string }) => {
@@ -432,20 +432,7 @@ describe("useWalletSession", () => {
       }),
       request,
     };
-    const replacementProvider: MockWalletConnectProvider = {
-      accounts: [address],
-      session: undefined,
-      connect: vi.fn().mockImplementation(async () => {
-        replacementProvider.session = approvedWalletSession();
-      }),
-      disconnect: vi.fn().mockImplementation(async () => {
-        replacementProvider.session = undefined;
-      }),
-      request,
-    };
-    walletConnectMocks.init
-      .mockResolvedValueOnce(firstProvider)
-      .mockResolvedValueOnce(replacementProvider);
+    walletConnectMocks.init.mockResolvedValue(firstProvider);
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "First challenge" }) })
       .mockResolvedValueOnce({ ok: true })
@@ -464,10 +451,9 @@ describe("useWalletSession", () => {
     expect(result.current.pendingSignatureAddress).toBe(address);
     await act(async () => { await result.current.continueAuthentication(); });
 
-    expect(walletConnectMocks.init).toHaveBeenCalledTimes(2);
+    expect(walletConnectMocks.init).toHaveBeenCalledOnce();
     expect(firstProvider.disconnect).toHaveBeenCalledOnce();
-    expect(firstProvider.connect).toHaveBeenCalledOnce();
-    expect(replacementProvider.connect).toHaveBeenCalledOnce();
+    expect(firstProvider.connect).toHaveBeenCalledTimes(2);
     expect(request.mock.calls.filter(([args]) => args.method === "personal_sign")).toHaveLength(2);
     expect(result.current.authenticated).toBe(true);
   });
