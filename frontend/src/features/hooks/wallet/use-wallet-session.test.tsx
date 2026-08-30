@@ -213,7 +213,7 @@ describe("useWalletSession", () => {
     });
   });
 
-  it("shows the wallet request stage and JSON-RPC details", async () => {
+  it("replaces raw JSON-RPC details with actionable guidance", async () => {
     const providerError = { code: -32603, message: "Internal JSON-RPC error." };
     (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
       request: vi.fn()
@@ -238,7 +238,7 @@ describe("useWalletSession", () => {
       }
     });
     expect(thrown).toBeInstanceOf(Error);
-    expect(result.current.error).toBe("지갑 서명 단계 실패: Internal JSON-RPC error. (코드: -32603)");
+    expect(result.current.error).toBe("블록체인 네트워크 응답이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.");
   });
 
   it("adds an unknown chain before switching and signing in", async () => {
@@ -348,7 +348,7 @@ describe("useWalletSession", () => {
     expect(result.current.authenticated).toBe(true);
   });
 
-  it("shows backend error details from signature verification", async () => {
+  it("translates backend signature verification errors", async () => {
     (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
       request: vi.fn()
         .mockResolvedValueOnce([address])
@@ -378,8 +378,6 @@ describe("useWalletSession", () => {
       }
     });
     expect(thrown).toBeInstanceOf(Error);
-    expect(result.current.error).toBe(
-      "서명 검증 단계 실패: Signature is invalid. · 코드: SIWE_INVALID · HTTP 401",
-    );
+    expect(result.current.error).toBe("지갑 서명을 확인하지 못했습니다. 다시 서명해 주세요.");
   });
 });

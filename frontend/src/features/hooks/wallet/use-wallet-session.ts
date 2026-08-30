@@ -17,10 +17,10 @@ import {
   injectedWalletProvider,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
+import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
 import { useAppStore } from "@/stores/use-app-store";
 
 type SessionResponse = { walletAddress: `0x${string}` };
-type ErrorPayload = { error?: { code?: unknown; message?: unknown } };
 export type WalletPendingAction = "connect" | "account" | "change" | "logout" | null;
 
 type AuthenticationAction = Exclude<WalletPendingAction, "logout" | null>;
@@ -36,24 +36,6 @@ function isWalletAddress(value: unknown): value is `0x${string}` {
   return typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value);
 }
 
-function errorDetails(cause: unknown, fallback: string): string {
-  if (cause instanceof Error && cause.message) return cause.message;
-  if (typeof cause !== "object" || cause === null) return fallback;
-
-  const error = cause as { code?: unknown; message?: unknown; error?: unknown };
-  const nested = typeof error.error === "object" && error.error !== null
-    ? error.error as { code?: unknown; message?: unknown }
-    : undefined;
-  const message = typeof error.message === "string"
-    ? error.message
-    : typeof nested?.message === "string" ? nested.message : fallback;
-  const code = error.code ?? nested?.code;
-
-  return typeof code === "string" || typeof code === "number"
-    ? `${message} (코드: ${code})`
-    : message;
-}
-
 function errorCode(cause: unknown): string | number | undefined {
   if (typeof cause !== "object" || cause === null) return undefined;
   const error = cause as { code?: unknown; error?: unknown };
@@ -64,8 +46,8 @@ function errorCode(cause: unknown): string | number | undefined {
 }
 
 class WalletRequestError extends Error {
-  constructor(message: string, readonly code?: string | number) {
-    super(message);
+  constructor(message: string, readonly code?: string | number, options?: ErrorOptions) {
+    super(message, options);
     this.name = "WalletRequestError";
   }
 }
@@ -79,26 +61,11 @@ async function walletRequest<T>(
     return await provider.request(args) as T;
   } catch (cause) {
     throw new WalletRequestError(
-      `${stage} 단계 실패: ${errorDetails(cause, "지갑에서 요청을 처리하지 못했습니다.")}`,
+      `${stage} 단계에서 요청을 처리하지 못했습니다.`,
       errorCode(cause),
+      { cause },
     );
   }
-}
-
-async function apiResponseError(response: Response, fallback: string): Promise<Error> {
-  let payload: ErrorPayload | undefined;
-  try {
-    payload = await response.json() as ErrorPayload;
-  } catch {
-    // JSON 오류 본문이 없으면 상태 코드만으로 진단한다.
-  }
-  const code = typeof payload?.error?.code === "string" ? payload.error.code : undefined;
-  const message = typeof payload?.error?.message === "string" ? payload.error.message : undefined;
-  const detail = [message, code ? `코드: ${code}` : undefined, `HTTP ${response.status}`]
-    .filter(Boolean)
-    .join(" · ");
-
-  return new Error(`${fallback}: ${detail}`);
 }
 
 type EventedWalletProvider = ReturnType<typeof activeWalletProvider> & {
@@ -292,7 +259,7 @@ export function useWalletSession() {
       }
       return await authenticateAddress(provider, accounts[0]);
     } catch (cause) {
-      const message = errorDetails(cause, "지갑 연결에 실패했습니다.");
+      const message = userFacingErrorMessage(cause, "지갑 연결에 실패했습니다. 지갑 상태를 확인해 주세요.");
       setError(message);
       throw cause;
     } finally {
@@ -351,7 +318,7 @@ export function useWalletSession() {
       setAccountSelectionAction(null);
       return next;
     } catch (cause) {
-      setError(errorDetails(cause, "선택한 계정으로 로그인하지 못했습니다."));
+      setError(userFacingErrorMessage(cause, "선택한 계정으로 로그인하지 못했습니다."));
       throw cause;
     } finally {
       setPendingAction(null);
@@ -374,7 +341,7 @@ export function useWalletSession() {
       });
       if (!response.ok) throw await apiResponseError(response, "로그아웃 단계 실패");
     } catch (cause) {
-      setError(errorDetails(cause, "서버 로그아웃 요청에 실패했습니다."));
+      setError(userFacingErrorMessage(cause, "서버 로그아웃 요청에 실패했습니다."));
     } finally {
       setSession(null);
       setAuthenticationStatus("anonymous");

@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isAddress, parseAbiItem, toHex } from "viem";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@/infrastructure/blockchain/config";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
-import { walletTransactionErrorMessage } from "@/infrastructure/blockchain/transaction-error";
+import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
 import { preprocessMediaFiles, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
 import { draftStorageKey, emptyDraft, type SendDraft } from "@features/data/send/send-draft";
 
@@ -115,7 +115,7 @@ export function useSendLetter(sender?: `0x${string}`) {
         const response = await fetch(`${apiBaseUrl}/packages/${working.archiveSha256!.slice(2)}`, {
           method: "PUT", credentials: "include", headers: { "Content-Type": "application/vnd.gibyeol.package" }, body: asArrayBuffer(archive),
         });
-        if (!response.ok && response.status !== 204) throw new Error("암호화 패키지를 보관하지 못했습니다.");
+        if (!response.ok && response.status !== 204) throw await apiResponseError(response, "암호화 패키지를 보관하지 못했습니다.");
         working = persist({ ...working, stage: "ENCRYPTING_KEY" });
       }
       if (working.stage === "ENCRYPTING_KEY") {
@@ -205,8 +205,7 @@ export function useSendLetter(sender?: `0x${string}`) {
       }
       return working;
     } catch (cause) {
-      const message = walletTransactionErrorMessage(cause)
-        ?? (cause instanceof Error ? cause.message : "편지를 봉인하지 못했습니다.");
+      const message = userFacingErrorMessage(cause, "편지를 봉인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
       setError(message); throw cause;
     } finally { setBusy(false); }
   }, [draft, persist, sender]);

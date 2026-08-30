@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient } from "@/infrastructure/blockchain/config";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
+import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
 import { openPasskeyMailbox } from "@features/data/mailbox/passkey";
 import type { InboxLetter, OpenedLetter } from "@features/data/inbox/inbox";
 import { loadInbox, loadLetterCalldata, loadMailboxEnvelopes } from "@features/data/inbox/onchain-inbox";
@@ -35,7 +36,7 @@ export function useInbox(address?: `0x${string}`) {
     if (!address) return;
     setBusy(true); setError(null);
     try { setLetters(await loadInbox(address)); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "받은 편지를 불러오지 못했습니다."); }
+    catch (cause) { setError(userFacingErrorMessage(cause, "받은 편지를 불러오지 못했습니다.")); }
     finally { setBusy(false); }
   }, [address]);
 
@@ -51,7 +52,7 @@ export function useInbox(address?: `0x${string}`) {
       }
       const calldata = await loadLetterCalldata(letter);
       const archiveResponse = await fetch(`${apiBaseUrl}/packages/${letter.archiveSha256.slice(2)}`);
-      if (!archiveResponse.ok) throw new Error("편지 미디어 패키지를 찾을 수 없습니다.");
+      if (!archiveResponse.ok) throw await apiResponseError(archiveResponse, "편지 미디어 패키지를 찾을 수 없습니다.");
       const archive = new Uint8Array(await archiveResponse.arrayBuffer());
       const actualHash = [...await sha256(archive)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
       if (actualHash !== letter.archiveSha256.slice(2).toLowerCase()) throw new Error("패키지 SHA-256이 온체인 기록과 다릅니다.");
@@ -80,20 +81,26 @@ export function useInbox(address?: `0x${string}`) {
     try {
       const envelopes = await loadMailboxEnvelopes(letter.recipient, letter.recipientKeyId);
       return await decryptWith(letter, await openPasskeyMailbox(hexToBytes(envelopes.passkeyEnvelope)));
-    } catch (cause) { const message = cause instanceof Error ? cause.message : "편지를 열지 못했습니다."; setError(message); throw cause; }
+    } catch (cause) { setError(userFacingErrorMessage(cause, "편지를 열지 못했습니다.")); throw cause; }
     finally { setBusy(false); }
   }, [decryptWith]);
 
   const requestEmailCode = useCallback(async (email: string) => {
-    const response = await fetch(`${apiBaseUrl}/mailbox/email/challenge`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-    if (!response.ok) throw new Error("인증 메일을 보내지 못했습니다.");
+    setBusy(true); setError(null);
+    try {
+      const response = await fetch(`${apiBaseUrl}/mailbox/email/challenge`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      if (!response.ok) throw await apiResponseError(response, "인증 메일을 보내지 못했습니다.");
+    } catch (cause) {
+      setError(userFacingErrorMessage(cause, "인증 메일을 보내지 못했습니다."));
+      throw cause;
+    } finally { setBusy(false); }
   }, []);
 
   const recover = useCallback(async (letter: InboxLetter, code: string) => {
     setBusy(true); setError(null);
     try {
       const verify = await fetch(`${apiBaseUrl}/mailbox/email/verify`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
-      if (!verify.ok) throw new Error("이메일 인증 코드를 확인해 주세요.");
+      if (!verify.ok) throw await apiResponseError(verify, "이메일 인증번호를 확인해 주세요.");
       const envelopes = await loadMailboxEnvelopes(letter.recipient, letter.recipientKeyId);
       const recoveryCiphertext = await createQuicknetTlock().decrypt(hexToBytes(envelopes.recoveryEnvelope));
       const clientSeed = crypto.getRandomValues(new Uint8Array(32));
@@ -102,7 +109,7 @@ export function useInbox(address?: `0x${string}`) {
       try {
         clientPair = await mailboxKeyPairFromSeed(clientSeed);
         const response = await fetch(`${apiBaseUrl}/recovery/unwrap`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId: letter.recipientKeyId, recoveryCiphertext: encode(recoveryCiphertext), clientPublicKey: encode(clientPair.publicKey) }) });
-        if (!response.ok) throw new Error("복구 seed를 확인하지 못했습니다.");
+        if (!response.ok) throw await apiResponseError(response, "메일박스 복구 키를 확인하지 못했습니다.");
         const body = await response.json() as { sealedSeed: string };
         const mailboxSeed = await openSealBox(decode(body.sealedSeed), clientPair);
         try {
@@ -115,7 +122,7 @@ export function useInbox(address?: `0x${string}`) {
         recoveryCiphertext.fill(0);
         clientPair?.privateKey.fill(0);
       }
-    } catch (cause) { const message = cause instanceof Error ? cause.message : "메일박스를 복구하지 못했습니다."; setError(message); throw cause; }
+    } catch (cause) { setError(userFacingErrorMessage(cause, "메일박스를 복구하지 못했습니다.")); throw cause; }
     finally { setBusy(false); }
   }, [decryptWith]);
 
