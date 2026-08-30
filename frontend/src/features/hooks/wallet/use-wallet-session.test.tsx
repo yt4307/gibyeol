@@ -396,6 +396,75 @@ describe("useWalletSession", () => {
     expect(result.current.pendingSignatureAddress).toBeUndefined();
   });
 
+  it("reconnects WalletConnect before retrying a signature that the user rejected", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    let signatureAttempts = 0;
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
+      if (method === "personal_sign" && signatureAttempts++ === 0) {
+        throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+      }
+      if (method === "personal_sign") return "0xsignature";
+      return null;
+    });
+    const approvedWalletSession = () => ({
+      requiredNamespaces: {
+        eip155: {
+          chains: [`eip155:${chainId}`],
+          methods: ["eth_sendTransaction", "personal_sign"],
+          events: ["accountsChanged", "chainChanged"],
+        },
+      },
+      namespaces: {
+        eip155: {
+          accounts: [`eip155:${chainId}:${address}`],
+          chains: [`eip155:${chainId}`],
+          methods: ["eth_sendTransaction", "personal_sign"],
+          events: ["accountsChanged", "chainChanged"],
+        },
+      },
+    });
+    const walletConnectProvider: {
+      accounts: string[];
+      session?: ReturnType<typeof approvedWalletSession>;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: typeof request;
+    } = {
+      accounts: [address],
+      session: undefined,
+      connect: vi.fn().mockImplementation(async () => {
+        walletConnectProvider.session = approvedWalletSession();
+      }),
+      disconnect: vi.fn().mockImplementation(async () => {
+        walletConnectProvider.session = undefined;
+      }),
+      request,
+    };
+    walletConnectMocks.init.mockResolvedValue(walletConnectProvider);
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "First challenge" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Second challenge" }) })
+      .mockResolvedValueOnce({ ok: true }));
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.restoring).toBe(false));
+    await act(async () => { await result.current.connect(); });
+
+    await act(async () => {
+      await expect(result.current.continueAuthentication()).rejects.toMatchObject({ code: 4001 });
+    });
+    expect(result.current.error).toContain("로그인 서명을 취소했습니다");
+
+    await act(async () => { await result.current.continueAuthentication(); });
+
+    expect(walletConnectProvider.disconnect).toHaveBeenCalledOnce();
+    expect(walletConnectProvider.connect).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls.filter(([args]) => args.method === "personal_sign")).toHaveLength(2);
+    expect(result.current.authenticated).toBe(true);
+  });
+
   it("asks an injected wallet to approve accounts again when changing accounts", async () => {
     cacheWalletSession();
     const request = vi.fn(async ({ method }: { method: string }) => {
