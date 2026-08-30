@@ -18,7 +18,17 @@ type WalletConnectProvider = BrowserProvider & {
   disconnect(): Promise<void>;
   accounts?: string[];
   session?: {
-    namespaces: Record<string, { methods?: string[]; events?: string[] }>;
+    namespaces: Record<string, {
+      accounts?: string[];
+      chains?: string[];
+      methods?: string[];
+      events?: string[];
+    }>;
+    requiredNamespaces?: Record<string, {
+      chains?: string[];
+      methods?: string[];
+      events?: string[];
+    }>;
   };
 };
 
@@ -39,12 +49,28 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
 
-function walletConnectSessionHasRequiredCapabilities(provider: WalletConnectProvider): boolean {
+function walletConnectSessionHasRequiredCapabilities(
+  provider: WalletConnectProvider,
+  configuredChainId: number,
+): boolean {
   if (!provider.session) return false;
+  const requiredChain = `eip155:${configuredChainId}`;
+  const requiredNamespaces = Object.values(provider.session.requiredNamespaces ?? {});
+  const requestedChains = new Set(requiredNamespaces.flatMap((namespace) => namespace.chains ?? []));
+  const requestedMethods = new Set(requiredNamespaces.flatMap((namespace) => namespace.methods ?? []));
+  const requestedEvents = new Set(requiredNamespaces.flatMap((namespace) => namespace.events ?? []));
   const namespaces = Object.values(provider.session.namespaces);
   const approvedMethods = new Set(namespaces.flatMap((namespace) => namespace.methods ?? []));
   const approvedEvents = new Set(namespaces.flatMap((namespace) => namespace.events ?? []));
-  return walletConnectRequiredMethods.every((method) => approvedMethods.has(method))
+  const approvedChains = new Set(namespaces.flatMap((namespace) => [
+    ...(namespace.chains ?? []),
+    ...(namespace.accounts ?? []).map((account) => account.split(":").slice(0, 2).join(":")),
+  ]));
+  return requestedChains.has(requiredChain)
+    && approvedChains.has(requiredChain)
+    && walletConnectRequiredMethods.every((method) => requestedMethods.has(method))
+    && walletConnectRequiredMethods.every((method) => approvedMethods.has(method))
+    && walletConnectEvents.every((event) => requestedEvents.has(event))
     && walletConnectEvents.every((event) => approvedEvents.has(event));
 }
 
@@ -116,7 +142,7 @@ export async function connectWalletProvider(
 
   const staleSession = Boolean(provider.session) && (
     replaceSession
-    || !walletConnectSessionHasRequiredCapabilities(provider)
+    || !walletConnectSessionHasRequiredCapabilities(provider, configuredChainId)
   );
   if (staleSession) {
     await provider.disconnect();
@@ -124,7 +150,7 @@ export async function connectWalletProvider(
   if (!provider.session) {
     await provider.connect();
   }
-  if (!walletConnectSessionHasRequiredCapabilities(provider)) {
+  if (!walletConnectSessionHasRequiredCapabilities(provider, configuredChainId)) {
     await provider.disconnect().catch(() => undefined);
     throw new Error(
       "연결된 지갑이 로그인 서명 권한을 승인하지 않았습니다. MetaMask에서 연결을 다시 승인해 주세요.",

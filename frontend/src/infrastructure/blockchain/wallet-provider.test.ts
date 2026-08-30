@@ -10,8 +10,17 @@ const walletConnectRequiredMethodsForTest = [
 ];
 
 const approvedSession = () => ({
+  requiredNamespaces: {
+    eip155: {
+      chains: ["eip155:84532"],
+      methods: [...walletConnectRequiredMethodsForTest],
+      events: ["accountsChanged", "chainChanged"],
+    },
+  },
   namespaces: {
     eip155: {
+      accounts: ["eip155:84532:0x1111111111111111111111111111111111111111"],
+      chains: ["eip155:84532"],
       methods: [...walletConnectRequiredMethodsForTest],
       events: ["accountsChanged", "chainChanged"],
     },
@@ -132,9 +141,7 @@ describe("wallet provider selection", () => {
   it("detects mobile browsers while retaining an approved WalletConnect session", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider = {
-      session: {
-        namespaces: { eip155: { methods: [...walletConnectRequiredMethodsForTest], events: ["accountsChanged", "chainChanged"] } },
-      },
+      session: approvedSession(),
       connect: vi.fn(),
       disconnect: vi.fn(),
       request: vi.fn(),
@@ -184,12 +191,24 @@ describe("wallet provider selection", () => {
   it("reconnects a persisted session that lacks required signing capabilities", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
-      session?: { namespaces: Record<string, { methods: string[]; events: string[] }> };
+      session?: ReturnType<typeof approvedSession>;
       connect: ReturnType<typeof vi.fn>;
       disconnect: ReturnType<typeof vi.fn>;
       request: ReturnType<typeof vi.fn>;
     } = {
-      session: { namespaces: { eip155: { methods: ["personal_sign"], events: [] } } },
+      session: {
+        requiredNamespaces: {
+          eip155: { chains: ["eip155:84532"], methods: ["personal_sign"], events: [] },
+        },
+        namespaces: {
+          eip155: {
+            accounts: ["eip155:84532:0x1111111111111111111111111111111111111111"],
+            chains: ["eip155:84532"],
+            methods: ["personal_sign"],
+            events: [],
+          },
+        },
+      },
       connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
       disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
       request: vi.fn(),
@@ -205,15 +224,12 @@ describe("wallet provider selection", () => {
   it("disconnects an approved WalletConnect session before choosing another wallet", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
-      session?: { namespaces: Record<string, { methods: string[]; events: string[] }> };
+      session?: ReturnType<typeof approvedSession>;
       connect: ReturnType<typeof vi.fn>;
       disconnect: ReturnType<typeof vi.fn>;
       request: ReturnType<typeof vi.fn>;
     } = {
-      session: { namespaces: { eip155: { methods: [
-        "eth_sendTransaction",
-        "personal_sign",
-      ], events: ["accountsChanged", "chainChanged"] } } },
+      session: approvedSession(),
       connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
       disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
       request: vi.fn(),
@@ -229,7 +245,15 @@ describe("wallet provider selection", () => {
   it("rejects a newly connected session that did not approve personal signing", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
-      session?: { namespaces: Record<string, { methods: string[]; events: string[] }> };
+      session?: {
+        requiredNamespaces?: Record<string, { chains?: string[]; methods: string[]; events: string[] }>;
+        namespaces: Record<string, {
+          accounts?: string[];
+          chains?: string[];
+          methods: string[];
+          events: string[];
+        }>;
+      };
       connect: ReturnType<typeof vi.fn>;
       disconnect: ReturnType<typeof vi.fn>;
       request: ReturnType<typeof vi.fn>;
@@ -237,8 +261,20 @@ describe("wallet provider selection", () => {
       session: undefined,
       connect: vi.fn().mockImplementation(async () => {
         provider.session = {
+          requiredNamespaces: {
+            eip155: {
+              chains: ["eip155:84532"],
+              methods: ["eth_sendTransaction", "personal_sign"],
+              events: ["accountsChanged", "chainChanged"],
+            },
+          },
           namespaces: {
-            eip155: { methods: ["eth_sendTransaction"], events: ["accountsChanged", "chainChanged"] },
+            eip155: {
+              accounts: ["eip155:84532:0x1111111111111111111111111111111111111111"],
+              chains: ["eip155:84532"],
+              methods: ["eth_sendTransaction"],
+              events: ["accountsChanged", "chainChanged"],
+            },
           },
         };
       }),
@@ -251,5 +287,32 @@ describe("wallet provider selection", () => {
 
     expect(provider.disconnect).toHaveBeenCalledOnce();
     expect(activeWalletConnector()).toBeUndefined();
+  });
+
+  it("replaces a legacy optional-only session even when it lists signing methods", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider: {
+      session?: ReturnType<typeof approvedSession> | {
+        namespaces: ReturnType<typeof approvedSession>["namespaces"];
+        requiredNamespaces: Record<string, never>;
+      };
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: ReturnType<typeof vi.fn>;
+    } = {
+      session: {
+        requiredNamespaces: {},
+        namespaces: approvedSession().namespaces,
+      },
+      connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
+      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider();
+
+    expect(provider.disconnect).toHaveBeenCalledOnce();
+    expect(provider.connect).toHaveBeenCalledOnce();
   });
 });

@@ -337,7 +337,15 @@ describe("useWalletSession", () => {
     });
     const walletConnectProvider: {
       accounts: string[];
-      session?: { namespaces: Record<string, { methods: string[]; events: string[] }> };
+      session?: {
+        requiredNamespaces: Record<string, { chains: string[]; methods: string[]; events: string[] }>;
+        namespaces: Record<string, {
+          accounts: string[];
+          chains: string[];
+          methods: string[];
+          events: string[];
+        }>;
+      };
       connect: ReturnType<typeof vi.fn>;
       disconnect: ReturnType<typeof vi.fn>;
       request: typeof request;
@@ -346,8 +354,17 @@ describe("useWalletSession", () => {
       session: undefined,
       connect: vi.fn().mockImplementation(async () => {
         walletConnectProvider.session = {
+          requiredNamespaces: {
+            eip155: {
+              chains: [`eip155:${chainId}`],
+              methods: ["eth_sendTransaction", "personal_sign"],
+              events: ["accountsChanged", "chainChanged"],
+            },
+          },
           namespaces: {
             eip155: {
+              accounts: [`eip155:${chainId}:${address}`],
+              chains: [`eip155:${chainId}`],
               methods: ["eth_sendTransaction", "personal_sign"],
               events: ["accountsChanged", "chainChanged"],
             },
