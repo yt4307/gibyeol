@@ -14,6 +14,7 @@ import {
   clearActiveWalletProvider,
   connectWalletProvider,
   connectedWalletProvider,
+  disconnectActiveWalletProvider,
   injectedWalletProvider,
   isMobileBrowser,
 } from "@/infrastructure/blockchain/wallet-provider";
@@ -86,7 +87,6 @@ export function useWalletSession() {
   const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
   const [walletAccountMismatch, setWalletAccountMismatch] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<PendingWalletSignature | null>(null);
-  const [signatureRetryRequiresReconnect, setSignatureRetryRequiresReconnect] = useState(false);
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
@@ -237,7 +237,6 @@ export function useWalletSession() {
       }
       const next = { address, authenticated: true };
       setPendingSignature(null);
-      setSignatureRetryRequiresReconnect(false);
       setSession(next);
       setAuthenticationStatus("authenticated");
       setWalletAccountMismatch(false);
@@ -253,7 +252,6 @@ export function useWalletSession() {
     setAvailableAccounts([]);
     setAccountSelectionAction(null);
     setPendingSignature(null);
-    setSignatureRetryRequiresReconnect(false);
     try {
       const { connector, provider, accounts: connectedAccounts } = await connectWalletProvider(options);
       const accounts = walletAddresses(connectedAccounts?.length
@@ -285,7 +283,7 @@ export function useWalletSession() {
 
   const continueAuthentication = useCallback(async () => {
     if (!pendingSignature) return undefined;
-    let provider = connectedWalletProvider();
+    const provider = connectedWalletProvider();
     if (!provider) {
       setError("연결된 지갑을 찾을 수 없습니다. 다시 연결해 주세요.");
       setPendingSignature(null);
@@ -294,36 +292,17 @@ export function useWalletSession() {
     setPendingAction(pendingSignature.action);
     setError(null);
     try {
-      if (signatureRetryRequiresReconnect && activeWalletConnector() === "walletconnect") {
-        const reconnected = await connectWalletProvider({
-          replaceSession: true,
-          connector: "walletconnect",
-        });
-        const reconnectedAccounts = walletAddresses(reconnected.accounts?.length
-          ? reconnected.accounts
-          : await walletRequest<string[]>(reconnected.provider, "지갑 계정 연결", {
-            method: "eth_requestAccounts",
-          }));
-        if (!reconnectedAccounts.includes(pendingSignature.address)) {
-          throw new Error("이전에 선택한 계정이 새 지갑 연결에 포함되지 않았습니다. 계정을 다시 선택해 주세요.");
-        }
-        provider = reconnected.provider;
-        setSignatureRetryRequiresReconnect(false);
-      }
       return await authenticateAddress(provider, pendingSignature.address);
     } catch (cause) {
       const signatureRejected = [4001, 5000].includes(Number(errorCode(cause)));
-      if (activeWalletConnector() === "walletconnect" && signatureRejected) {
-        setSignatureRetryRequiresReconnect(true);
-      }
       setError(signatureRejected
-        ? "지갑에서 로그인 서명을 취소했습니다. 다시 시도하면 지갑 연결을 새로 확인합니다."
+        ? "지갑에서 로그인 서명을 취소했습니다. 필요할 때 다시 시도할 수 있어요."
         : userFacingErrorMessage(cause, "지갑 서명을 완료하지 못했습니다. 다시 시도해 주세요."));
       throw cause;
     } finally {
       setPendingAction(null);
     }
-  }, [authenticateAddress, pendingSignature, signatureRetryRequiresReconnect]);
+  }, [authenticateAddress, pendingSignature]);
 
   const clearAuthenticatedSession = useCallback(async () => {
     await fetch(`${apiBaseUrl}/auth/logout`, {
@@ -334,7 +313,6 @@ export function useWalletSession() {
     setAuthenticationStatus("anonymous");
     setWalletAccountMismatch(false);
     setPendingSignature(null);
-    setSignatureRetryRequiresReconnect(false);
   }, [setAuthenticationStatus, setSession]);
 
   const changeAccount = useCallback(async () => {
@@ -349,7 +327,6 @@ export function useWalletSession() {
       ? "walletconnect"
       : injectedWalletProvider() ? "injected" : "walletconnect";
     await clearAuthenticatedSession();
-    clearActiveWalletProvider();
     return authenticate("change", {
       replaceSession: nextConnector === "walletconnect",
       connector: nextConnector,
@@ -371,7 +348,6 @@ export function useWalletSession() {
     setPendingAction(accountSelectionAction ?? "connect");
     setError(null);
     setPendingSignature(null);
-    setSignatureRetryRequiresReconnect(false);
     try {
       const next = await authenticateAddress(provider, normalizedAddress);
       setAvailableAccounts([]);
@@ -389,7 +365,6 @@ export function useWalletSession() {
     setAvailableAccounts([]);
     setAccountSelectionAction(null);
     setPendingSignature(null);
-    setSignatureRetryRequiresReconnect(false);
     setError(null);
   }, []);
 
@@ -409,8 +384,7 @@ export function useWalletSession() {
       setAuthenticationStatus("anonymous");
       setWalletAccountMismatch(false);
       setPendingSignature(null);
-      setSignatureRetryRequiresReconnect(false);
-      clearActiveWalletProvider();
+      await disconnectActiveWalletProvider();
       setPendingAction(null);
     }
   }, [setAuthenticationStatus, setSession]);

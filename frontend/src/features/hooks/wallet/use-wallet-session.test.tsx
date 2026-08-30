@@ -396,26 +396,15 @@ describe("useWalletSession", () => {
     expect(result.current.pendingSignatureAddress).toBeUndefined();
   });
 
-  it("reconnects WalletConnect before retrying a signature that the user rejected", async () => {
+  it("reuses one WalletConnect provider when changing wallets and signing in again", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
-    let signatureAttempts = 0;
     const request = vi.fn(async ({ method }: { method: string }) => {
       if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
-      if (method === "personal_sign" && signatureAttempts++ === 0) {
-        throw Object.assign(new Error("User rejected the request."), { code: 4001 });
-      }
       if (method === "personal_sign") return "0xsignature";
       return null;
     });
     const approvedWalletSession = () => ({
-      requiredNamespaces: {
-        eip155: {
-          chains: [`eip155:${chainId}`],
-          methods: ["eth_sendTransaction", "personal_sign"],
-          events: ["accountsChanged", "chainChanged"],
-        },
-      },
       namespaces: {
         eip155: {
           accounts: [`eip155:${chainId}:${address}`],
@@ -445,20 +434,23 @@ describe("useWalletSession", () => {
     walletConnectMocks.init.mockResolvedValue(walletConnectProvider);
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "First challenge" }) })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Second challenge" }) })
       .mockResolvedValueOnce({ ok: true }));
 
     const { result } = renderHook(() => useWalletSession());
     await waitFor(() => expect(result.current.restoring).toBe(false));
     await act(async () => { await result.current.connect(); });
+    await act(async () => { await result.current.continueAuthentication(); });
+    expect(result.current.authenticated).toBe(true);
 
-    await act(async () => {
-      await expect(result.current.continueAuthentication()).rejects.toMatchObject({ code: 4001 });
-    });
-    expect(result.current.error).toContain("로그인 서명을 취소했습니다");
-
+    await act(async () => { await result.current.changeWallet(); });
+    expect(result.current.authenticated).toBe(false);
+    expect(result.current.pendingSignatureAddress).toBe(address);
     await act(async () => { await result.current.continueAuthentication(); });
 
+    expect(walletConnectMocks.init).toHaveBeenCalledOnce();
     expect(walletConnectProvider.disconnect).toHaveBeenCalledOnce();
     expect(walletConnectProvider.connect).toHaveBeenCalledTimes(2);
     expect(request.mock.calls.filter(([args]) => args.method === "personal_sign")).toHaveLength(2);

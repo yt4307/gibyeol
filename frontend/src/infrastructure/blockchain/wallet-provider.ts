@@ -43,6 +43,7 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
+let activeWalletConnectProvider: WalletConnectProvider | undefined;
 
 function walletConnectSessionHasRequiredCapabilities(
   provider: WalletConnectProvider,
@@ -92,6 +93,10 @@ export async function connectWalletProvider(
     throw new Error("브라우저에 설치된 지갑을 찾을 수 없습니다.");
   }
   if (injected && connector !== "walletconnect") {
+    if (activeWalletConnectProvider) {
+      await activeWalletConnectProvider.disconnect().catch(() => undefined);
+      activeWalletConnectProvider = undefined;
+    }
     if (replaceSession) {
       await injected.request({
         method: "wallet_requestPermissions",
@@ -108,28 +113,31 @@ export async function connectWalletProvider(
     throw new Error("모바일 지갑 연결 설정이 완료되지 않았습니다.");
   }
 
-  const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
   const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;
   const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
-  const provider = (await EthereumProvider.init({
-    projectId,
-    customStoragePrefix: "gibyeol-wallet-v2",
-    chains: [configuredChainId],
-    methods: [...walletConnectRequiredMethods],
-    events: [...walletConnectEvents],
-    optionalMethods: [...walletConnectOptionalMethods],
-    rpcMap: {
-      [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
-    },
-    metadata: {
-      name: "기별",
-      description: "미래로 보내는 암호 편지",
-      url: origin,
-      icons: [],
-      redirect: { universal: origin },
-    },
-    showQrModal: true,
-  })) as WalletConnectProvider;
+  let provider = activeWalletConnectProvider;
+  if (!provider) {
+    const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
+    provider = (await EthereumProvider.init({
+      projectId,
+      customStoragePrefix: "gibyeol-wallet-v2",
+      chains: [configuredChainId],
+      methods: [...walletConnectRequiredMethods],
+      events: [...walletConnectEvents],
+      optionalMethods: [...walletConnectOptionalMethods],
+      rpcMap: {
+        [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
+      },
+      metadata: {
+        name: "기별",
+        description: "미래로 보내는 암호 편지",
+        url: origin,
+        icons: [],
+        redirect: { universal: origin },
+      },
+      showQrModal: true,
+    })) as WalletConnectProvider;
+  }
 
   const staleSession = Boolean(provider.session) && (
     replaceSession
@@ -149,10 +157,22 @@ export async function connectWalletProvider(
   }
   activeProvider = provider;
   activeConnector = "walletconnect";
+  activeWalletConnectProvider = provider;
   return { connector: "walletconnect", provider, accounts: provider.accounts };
+}
+
+export async function disconnectActiveWalletProvider(): Promise<void> {
+  const provider = activeWalletConnectProvider;
+  activeProvider = undefined;
+  activeConnector = undefined;
+  activeWalletConnectProvider = undefined;
+  if (provider?.session) {
+    await provider.disconnect().catch(() => undefined);
+  }
 }
 
 export function clearActiveWalletProvider(): void {
   activeProvider = undefined;
   activeConnector = undefined;
+  activeWalletConnectProvider = undefined;
 }

@@ -222,7 +222,7 @@ describe("wallet provider selection", () => {
     expect(provider.connect).toHaveBeenCalledOnce();
   });
 
-  it("disconnects an approved WalletConnect session before choosing another wallet", async () => {
+  it("reuses one WalletConnect provider while replacing its approved session", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
       session?: ReturnType<typeof approvedSession>;
@@ -230,17 +230,19 @@ describe("wallet provider selection", () => {
       disconnect: ReturnType<typeof vi.fn>;
       request: ReturnType<typeof vi.fn>;
     } = {
-      session: approvedSession(),
+      session: undefined,
       connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
       disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
       request: vi.fn(),
     };
     mocks.init.mockResolvedValue(provider);
 
+    await connectWalletProvider();
     await connectWalletProvider({ replaceSession: true });
 
+    expect(mocks.init).toHaveBeenCalledOnce();
     expect(provider.disconnect).toHaveBeenCalledOnce();
-    expect(provider.connect).toHaveBeenCalledOnce();
+    expect(provider.connect).toHaveBeenCalledTimes(2);
   });
 
   it("rejects a newly connected session that did not approve personal signing", async () => {
