@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isAddress, parseAbiItem, toHex } from "viem";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@/infrastructure/blockchain/config";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
+import { walletTransactionErrorMessage } from "@/infrastructure/blockchain/transaction-error";
 import { preprocessMediaFiles, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
 import { draftStorageKey, emptyDraft, type SendDraft } from "@features/data/send/send-draft";
 
@@ -204,7 +205,8 @@ export function useSendLetter(sender?: `0x${string}`) {
       }
       return working;
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "편지를 봉인하지 못했습니다.";
+      const message = walletTransactionErrorMessage(cause)
+        ?? (cause instanceof Error ? cause.message : "편지를 봉인하지 못했습니다.");
       setError(message); throw cause;
     } finally { setBusy(false); }
   }, [draft, persist, sender]);

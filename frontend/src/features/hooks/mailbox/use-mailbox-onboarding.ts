@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toHex } from "viem";
 import { contractAbi, contractAddress, publicClient, walletClient } from "@/infrastructure/blockchain/config";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
+import { walletTransactionErrorMessage } from "@/infrastructure/blockchain/transaction-error";
 import { createPasskeyMailbox } from "@features/data/mailbox/passkey";
 
 export function mailboxEnvelopeStorageKey(address: string, keyId: number) {
@@ -82,7 +83,8 @@ export function useMailboxOnboarding(address?: `0x${string}`) {
         mailbox.keyPair.privateKey.fill(0);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "메일박스를 만들지 못했습니다.");
+      setError(walletTransactionErrorMessage(cause)
+        ?? (cause instanceof Error ? cause.message : "메일박스를 만들지 못했습니다."));
       throw cause;
     } finally { setBusy(false); }
   }, [address]);
@@ -101,7 +103,8 @@ export function useMailboxOnboarding(address?: `0x${string}`) {
       await publicClient.waitForTransactionReceipt({ hash });
       setActive(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "메일박스를 비활성화하지 못했습니다.");
+      setError(walletTransactionErrorMessage(cause)
+        ?? (cause instanceof Error ? cause.message : "메일박스를 비활성화하지 못했습니다."));
       throw cause;
     } finally { setBusy(false); }
   }, [address]);

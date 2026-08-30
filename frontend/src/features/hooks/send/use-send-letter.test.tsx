@@ -116,6 +116,36 @@ describe("useSendLetter", () => {
     expect(mocks.writeContract).toHaveBeenCalledOnce();
   });
 
+  it("keeps the prepared letter and shows a concise message when the wallet rejects signing", async () => {
+    mocks.readContract
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(`0x${"02".repeat(32)}`)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(1);
+    mocks.writeContract.mockRejectedValueOnce(Object.assign(new Error("Request Arguments:\nsecret calldata"), {
+      cause: Object.assign(new Error("User denied transaction signature."), { code: 4001 }),
+    }));
+
+    const { result } = renderHook(() => useSendLetter(sender));
+    await waitFor(() => expect(result.current.draft?.stage).toBe("DRAFT"));
+    act(() => result.current.update({ recipient, message: "크리스마스에 만나요" }));
+    let rejection: unknown;
+    await act(async () => {
+      try { await result.current.seal([]); }
+      catch (cause) { rejection = cause; }
+    });
+
+    expect(rejection).toBeInstanceOf(Error);
+    expect((rejection as Error).message).toContain("secret calldata");
+    await waitFor(() => expect(result.current.draft?.stage).toBe("WAITING_TRANSACTION"));
+    expect(result.current.error).toBe("지갑에서 거래 승인을 취소했습니다. 준비된 편지는 유지되므로 다시 시도할 수 있어요.");
+  });
+
   it("recovers an already sealed letter without sending a duplicate transaction", async () => {
     localStorage.setItem(draftStorageKey(sender), JSON.stringify(storedDraft({
       stage: "WAITING_TRANSACTION",
