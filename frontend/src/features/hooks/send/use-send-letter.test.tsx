@@ -195,12 +195,12 @@ describe("useSendLetter", () => {
 
   it("returns to DRAFT when media preprocessing fails so the attachment can be retried", async () => {
     mocks.readContract.mockResolvedValueOnce(1).mockResolvedValueOnce(true);
-    mocks.preprocessMediaFiles.mockRejectedValueOnce(new RangeError("사진·영상 소포가 암호화 후 10 MiB를 초과합니다."));
+    mocks.preprocessMediaFiles.mockRejectedValueOnce(new RangeError("사진·영상 소포가 암호화 후 10MB를 초과합니다."));
 
     const { result } = renderHook(() => useSendLetter(sender));
     await waitFor(() => expect(result.current.draft?.stage).toBe("DRAFT"));
     act(() => result.current.update({ recipient, message: "크리스마스에 만나요" }));
-    await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("10 MiB");
+    await expect(act(async () => { await result.current.seal([]); })).rejects.toThrow("10MB");
 
     expect(result.current.draft?.stage).toBe("DRAFT");
     expect(fetch).not.toHaveBeenCalled();

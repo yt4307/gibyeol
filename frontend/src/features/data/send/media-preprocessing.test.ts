@@ -92,10 +92,10 @@ describe("media preprocessing", () => {
     );
   });
 
-  it("accounts for GBYL encryption overhead at the exact 10 MiB boundary", () => {
+  it("accounts for GBYL encryption overhead at the exact 10MB boundary", () => {
     expect(estimateGbylBytes([])).toBe(8);
     expect(assertArchiveSize([{ bytes: new Uint8Array(MAX_ARCHIVE_BYTES - 44) }])).toBe(MAX_ARCHIVE_BYTES);
-    expect(() => assertArchiveSize([{ bytes: new Uint8Array(MAX_ARCHIVE_BYTES - 43) }])).toThrow("10 MiB");
-    expect(formatMediaBytes(MAX_ARCHIVE_BYTES)).toBe("10.00 MiB");
+    expect(() => assertArchiveSize([{ bytes: new Uint8Array(MAX_ARCHIVE_BYTES - 43) }])).toThrow("10MB");
+    expect(formatMediaBytes(MAX_ARCHIVE_BYTES)).toBe("10.00MB");
   });
 });

@@ -15,7 +15,7 @@ const apiMessages: Record<string, string> = {
   EMAIL_CODE_INVALID: "인증번호가 올바르지 않습니다.",
   EMAIL_CODE_EXPIRED: "인증번호가 만료되었습니다. 새 인증번호를 요청해 주세요.",
   EMAIL_DELIVERY_FAILED: "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.",
-  PACKAGE_TOO_LARGE: "사진·영상 소포가 10 MiB를 초과했습니다.",
+  PACKAGE_TOO_LARGE: "사진·영상 소포가 10MB를 초과했습니다.",
   PACKAGE_FORMAT_INVALID: "암호화 소포 형식을 확인하지 못했습니다. 다시 꾸려 주세요.",
   PACKAGE_HASH_MISMATCH: "암호화 소포가 전송 중 변경되었습니다. 다시 시도해 주세요.",
   PACKAGE_LENGTH_MISMATCH: "암호화 소포가 완전히 전송되지 않았습니다. 다시 시도해 주세요.",
@@ -64,15 +64,15 @@ export function userFacingErrorMessage(cause: unknown, fallback: string): string
   if (Number(code) === -32002) return "지갑에 이미 처리 중인 요청이 있습니다. 지갑 창을 확인해 주세요.";
   if (Number(code) === 4100) return "지갑 계정 접근 권한이 없습니다. 지갑을 다시 연결해 주세요.";
   if (Number(code) === 4900 || Number(code) === 4901) return "지갑 네트워크 연결이 끊어졌습니다. 연결을 확인해 주세요.";
-  if (name === "NotAllowedError") return "Passkey 요청이 취소되었거나 시간이 초과되었습니다. 다시 시도해 주세요.";
-  if (name === "InvalidStateError") return "이 기기에 이미 등록된 Passkey가 있습니다. 기존 Passkey를 사용해 주세요.";
-  if (name === "NotSupportedError") return "이 브라우저나 기기는 필요한 Passkey 기능을 지원하지 않습니다.";
-  if (name === "SecurityError") return "현재 주소에서는 Passkey를 사용할 수 없습니다. 공식 기별 주소로 접속해 주세요.";
+  if (name === "NotAllowedError") return "패스키 요청이 취소되었거나 시간이 초과되었습니다. 다시 시도해 주세요.";
+  if (name === "InvalidStateError") return "이 기기에 이미 등록된 패스키가 있습니다. 기존 패스키를 사용해 주세요.";
+  if (name === "NotSupportedError") return "이 브라우저나 기기는 필요한 패스키 기능을 지원하지 않습니다.";
+  if (name === "SecurityError") return "현재 주소에서는 패스키를 사용할 수 없습니다. 공식 기별 주소로 접속해 주세요.";
   if (name === "AbortError") return "요청이 중단되었습니다. 다시 시도해 주세요.";
   if (/failed to fetch|networkerror|network request failed|load failed/.test(text)) return "서버에 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.";
   if (/internal json-rpc|rpc request|http request failed/.test(text)) return "블록체인 네트워크 응답이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
   if (/compressionstream|decompressionstream/.test(text)) return "이 브라우저는 편지 압축 기능을 지원하지 않습니다. 최신 브라우저에서 다시 시도해 주세요.";
-  if (/operation either timed out or was not allowed/.test(text)) return "Passkey 요청이 취소되었거나 시간이 초과되었습니다. 다시 시도해 주세요.";
+  if (/operation either timed out or was not allowed/.test(text)) return "패스키 요청이 취소되었거나 시간이 초과되었습니다. 다시 시도해 주세요.";
 
   const safeKorean = records
     .map((record) => record.message)

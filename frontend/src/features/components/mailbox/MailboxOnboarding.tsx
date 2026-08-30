@@ -9,7 +9,7 @@ export function MailboxOnboarding({ keyId, active, busy, error, onRegister, onDe
   const checking = registered && active == null;
   const activeMailbox = registered && active === true;
   return <Panel>
-    <div><Label>PASSKEY MAILBOX</Label><h3>{checking ? "메일박스 상태 확인 중" : activeMailbox ? `메일박스 키 #${keyId}` : registered ? "메일박스 비활성화됨" : "Passkey로 받을 준비하기"}</h3><Copy>{registered && active === false ? "새 편지는 받을 수 없지만 기존 키와 온체인 기록은 유지됩니다. 새 키를 만들면 다시 활성화할 수 있어요." : "개인키는 이 기기 밖으로 나가지 않고, 분실 복구 봉투는 약속한 날까지 time lock으로 잠깁니다."}</Copy></div>
+    <div><Label>패스키 메일박스</Label><h3>{checking ? "메일박스 상태 확인 중" : activeMailbox ? `메일박스 키 #${keyId}` : registered ? "메일박스 비활성화됨" : "패스키로 받을 준비하기"}</h3><Copy>{registered && active === false ? "새 편지는 받을 수 없지만 기존 키와 블록체인 기록은 유지됩니다. 새 키를 만들면 다시 활성화할 수 있어요." : "개인키는 이 기기 밖으로 나가지 않고, 분실 복구 봉투는 약속한 날까지 시간 잠금으로 보호됩니다."}</Copy></div>
     {activeMailbox
       ? <DeactivateButton type="button" disabled={busy} onClick={onDeactivate}>{busy ? "비활성화 중…" : "메일박스 비활성화"}</DeactivateButton>
       : <Button type="button" disabled={busy || checking || activeMailbox} onClick={onRegister}>{busy ? "봉투 만드는 중…" : checking ? "상태 확인 중…" : activeMailbox ? "등록 완료" : registered ? "새 키로 다시 활성화" : "메일박스 만들기"}</Button>}

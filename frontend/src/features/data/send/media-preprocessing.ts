@@ -74,7 +74,7 @@ export const browserMediaRuntime: MediaPreprocessorRuntime = {
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("이미지 변환을 위한 Canvas를 사용할 수 없습니다.");
+    if (!context) throw new Error("이 브라우저의 이미지 처리 기능을 사용할 수 없습니다.");
     if (mimeType === "image/jpeg") {
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, width, height);
@@ -116,7 +116,7 @@ export function estimateGbylBytes(items: readonly Pick<MediaInput, "bytes">[]) {
 export function assertArchiveSize(items: readonly Pick<MediaInput, "bytes">[]) {
   const estimated = estimateGbylBytes(items);
   if (estimated > MAX_ARCHIVE_BYTES) {
-    throw new RangeError("사진·영상 소포가 암호화 후 10 MiB를 초과합니다.");
+    throw new RangeError("사진·영상 소포가 암호화 후 10MB를 초과합니다.");
   }
   return estimated;
 }
@@ -128,7 +128,7 @@ async function blobBytes(blob: Blob) {
 function imageCodec(mimeType: string) {
   if (mimeType === "image/webp") return MEDIA_CODEC.WEBP;
   if (mimeType === "image/jpeg") return MEDIA_CODEC.JPEG;
-  throw new TypeError("변환된 이미지 codec을 확인할 수 없습니다.");
+  throw new TypeError("변환된 이미지 형식을 확인할 수 없습니다.");
 }
 
 async function preprocessImage(file: File, runtime: MediaPreprocessorRuntime) {
@@ -230,7 +230,7 @@ export async function preprocessMediaFiles(
 }
 
 export function formatMediaBytes(bytes: number) {
-  if (bytes < 1_024) return `${bytes} B`;
-  if (bytes < 1_024 * 1_024) return `${(bytes / 1_024).toFixed(1)} KiB`;
-  return `${(bytes / (1_024 * 1_024)).toFixed(2)} MiB`;
+  if (bytes < 1_024) return `${bytes}바이트`;
+  if (bytes < 1_024 * 1_024) return `${(bytes / 1_024).toFixed(1)}KB`;
+  return `${(bytes / (1_024 * 1_024)).toFixed(2)}MB`;
 }

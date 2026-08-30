@@ -49,7 +49,7 @@ describe("on-chain calldata recovery", () => {
       sealedKey: "0x0909",
     });
     await expect(loadLetterCalldata({ ...letter, recipientKeyId: 5 })).rejects.toThrow(
-      "이벤트와 거래 calldata가 일치하지 않습니다.",
+      "블록체인 기록과 거래 호출 데이터가 일치하지 않습니다.",
     );
   });
 
@@ -84,7 +84,7 @@ describe("on-chain calldata recovery", () => {
     });
 
     await expect(loadMailboxEnvelopes(letter.recipient, 4)).rejects.toThrow(
-      "메일박스 이벤트와 calldata가 일치하지 않습니다.",
+      "메일박스의 블록체인 기록과 호출 데이터가 일치하지 않습니다.",
     );
   });
 });

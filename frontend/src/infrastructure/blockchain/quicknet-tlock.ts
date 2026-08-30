@@ -31,7 +31,7 @@ export function createQuicknetTlock(unlockRound = BigInt(UNLOCK_ROUND)) {
     primitive: {
       encrypt: async (payload, round, chainHash) => {
         if (chainHash.some((byte, index) => byte !== hexToBytes(QUICKNET_CHAIN_HASH)[index])) {
-          throw new Error("drand chain hash가 일치하지 않습니다.");
+          throw new Error("시간 잠금 네트워크 식별값이 일치하지 않습니다.");
         }
         return new TextEncoder().encode(
           await timelockEncrypt(Number(round), Buffer.from(payload), client),

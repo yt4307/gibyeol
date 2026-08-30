@@ -23,14 +23,14 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
   const email = useEmailRegistration(authenticatedAddress);
   const mailboxReady = Boolean(mailbox.keyId && mailbox.keyId > 0 && mailbox.active);
   return <Shell>
-    <Top><Link href="/"><BrandWordmark /></Link><DateMark>CHRISTMAS POST · 2026</DateMark></Top>
+    <Top><Link href="/"><BrandWordmark /></Link><DateMark>크리스마스 우체국 · 2026</DateMark></Top>
     <Intro>
       <Eyebrow>시간을 건너는 디지털 우체국</Eyebrow>
       <IntroTitle aria-label="오늘의 마음을 별빛 아래 봉인합니다.">
         <IntroTitlePhrase>오늘의 마음을</IntroTitlePhrase>
         <IntroTitlePhrase>별빛 아래 봉인합니다.</IntroTitlePhrase>
       </IntroTitle>
-      <p>지갑으로 본인을 확인하고, Passkey로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p>
+      <p>지갑으로 본인을 확인하고, 패스키로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p>
     </Intro>
     <Workspace>
       <WalletPanel

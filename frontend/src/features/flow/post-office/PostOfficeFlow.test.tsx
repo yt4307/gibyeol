@@ -74,8 +74,8 @@ describe("PostOfficeFlow integration", () => {
 
     expect(screen.getByRole("button", { name: "지갑 연결" })).toBeTruthy();
     expect(screen.getByText("모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.")).toBeTruthy();
-    expect(screen.queryByText("PASSKEY MAILBOX")).toBeNull();
-    expect(screen.queryByText("ARRIVAL EMAIL")).toBeNull();
+    expect(screen.queryByText("패스키 메일박스")).toBeNull();
+    expect(screen.queryByText("도착 안내 이메일")).toBeNull();
     expect(screen.queryByRole("navigation", { name: "우체국 메뉴" })).toBeNull();
     expect(mocks.useMailboxOnboarding).toHaveBeenCalledWith(undefined);
     expect(mocks.useEmailRegistration).toHaveBeenCalledWith(undefined);
@@ -89,7 +89,7 @@ describe("PostOfficeFlow integration", () => {
 
     expect(mocks.registerMailbox).toHaveBeenCalledOnce();
     expect(screen.getByText("편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요.")).toBeTruthy();
-    expect(screen.queryByText("ARRIVAL EMAIL")).toBeNull();
+    expect(screen.queryByText("도착 안내 이메일")).toBeNull();
     expect(mocks.useMailboxOnboarding).toHaveBeenCalledWith(address);
   });
 
@@ -101,7 +101,7 @@ describe("PostOfficeFlow integration", () => {
     fireEvent.change(screen.getByPlaceholderText("email@example.com"), {
       target: { value: "letter@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "인증 코드 받기" }));
+    fireEvent.click(screen.getByRole("button", { name: "인증번호 받기" }));
 
     expect(mocks.requestCode).toHaveBeenCalledWith("letter@example.com");
     expect(screen.getByText("이메일 인증을 마치면 편지를 보내고 받을 수 있어요.")).toBeTruthy();
@@ -122,7 +122,7 @@ describe("PostOfficeFlow integration", () => {
     render(<PostOfficeFlow />);
 
     expect(screen.getByText("메일박스 비활성화됨")).toBeTruthy();
-    expect(screen.queryByText("ARRIVAL EMAIL")).toBeNull();
+    expect(screen.queryByText("도착 안내 이메일")).toBeNull();
     expect(screen.getByText("메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "새 키로 다시 활성화" }));
     expect(mocks.registerMailbox).toHaveBeenCalledOnce();

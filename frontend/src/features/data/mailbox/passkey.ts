@@ -34,7 +34,7 @@ async function authenticatePrf(credentialId: ArrayBuffer, prfInput: Uint8Array) 
     },
   })) as PublicKeyCredential | null;
   const output = assertion ? prfOutput(assertion) : null;
-  if (!output) throw new Error("이 Passkey는 WebAuthn PRF를 지원하지 않습니다.");
+  if (!output) throw new Error("이 패스키는 필요한 보안 기능을 지원하지 않습니다.");
   return output;
 }
 
@@ -57,7 +57,7 @@ export async function createPasskeyMailbox(walletAddress: string) {
       extensions: { prf: { eval: { first: asArrayBuffer(prfInput) } } },
     },
   })) as PublicKeyCredential | null;
-  if (!credential) throw new Error("Passkey 생성이 취소되었습니다.");
+  if (!credential) throw new Error("패스키 생성이 취소되었습니다.");
   const output = prfOutput(credential) ?? await authenticatePrf(credential.rawId, prfInput);
   const envelope = await wrapMailboxSeedGpk1(
     seed,
@@ -88,9 +88,9 @@ export async function openPasskeyMailbox(envelope: Uint8Array) {
       extensions: { prf: { eval: { first: asArrayBuffer(parsed.prfSalt) } } },
     },
   })) as PublicKeyCredential | null;
-  if (!credential) throw new Error("Passkey 확인이 취소되었습니다.");
+  if (!credential) throw new Error("패스키 확인이 취소되었습니다.");
   const output = prfOutput(credential);
-  if (!output) throw new Error("이 Passkey에서 PRF 출력을 얻지 못했습니다.");
+  if (!output) throw new Error("이 패스키에서 필요한 보안 키를 얻지 못했습니다.");
   const seed = await unwrapMailboxSeedGpk1(envelope, output);
   try {
     return await mailboxKeyPairFromSeed(seed);

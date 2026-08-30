@@ -50,7 +50,7 @@ export function HomeHero({ content }: HomeHeroProps) {
       </HeroGrid>
 
       <About id="about">
-        <AboutLabel>ABOUT GIBYEOL</AboutLabel>
+        <AboutLabel>기별 이야기</AboutLabel>
         <AboutText>
           편지는 블록체인에 기록되고, 마음은 암호화된 채 약속한 시간까지
           기다립니다. 기별은 그 약속을 조용히 지키는 디지털 우체국입니다.

@@ -155,7 +155,7 @@ async function transcodeWithWebCodecs(file: File): Promise<TimelapseTranscodeRes
     if (!await input.canRead()) throw new Error(`${file.name}: 영상 컨테이너를 읽을 수 없습니다.`);
     const track = await input.getPrimaryVideoTrack();
     if (!track || !await track.canDecode()) {
-      throw new Error(`${file.name}: WebCodecs에서 원본 codec을 디코딩할 수 없습니다.`);
+      throw new Error(`${file.name}: 브라우저가 원본 영상 형식을 읽을 수 없습니다.`);
     }
     const dimensions = fitTimelapseDimensions(
       await track.getDisplayWidth(),
@@ -166,7 +166,7 @@ async function transcodeWithWebCodecs(file: File): Promise<TimelapseTranscodeRes
       height: dimensions.height,
       bitrate: TIMELAPSE_BITRATE,
     })) {
-      throw new Error(`${file.name}: WebCodecs VP8 encoder를 사용할 수 없습니다.`);
+      throw new Error(`${file.name}: 브라우저가 타임랩스 영상을 만들 수 없습니다.`);
     }
 
     source = new VideoSampleSource({
@@ -201,7 +201,7 @@ async function transcodeWithWebCodecs(file: File): Promise<TimelapseTranscodeRes
     if (outputFrame === 0) throw new Error(`${file.name}: 영상 프레임을 찾지 못했습니다.`);
     source.close();
     await output.finalize();
-    if (!target.buffer?.byteLength) throw new Error(`${file.name}: WebCodecs 출력이 비어 있습니다.`);
+    if (!target.buffer?.byteLength) throw new Error(`${file.name}: 타임랩스 변환 결과가 비어 있습니다.`);
     return {
       blob: new Blob([target.buffer], { type: "video/webm" }),
       backend: "webcodecs",

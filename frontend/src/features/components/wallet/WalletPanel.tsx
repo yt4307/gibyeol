@@ -47,7 +47,7 @@ export function WalletPanel({
   return (
     <Panel>
       <div>
-        <Label>WALLET &amp; SIWE</Label>
+        <Label>지갑 로그인</Label>
         <Value>{address
           ? shortAddress(address)
           : pendingSignatureAddress ? `연결한 지갑 ${shortAddress(pendingSignatureAddress)}`

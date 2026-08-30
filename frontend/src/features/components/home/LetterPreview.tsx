@@ -17,10 +17,10 @@ export function LetterPreview({ label, message }: LetterPreviewProps) {
       <DeliverySlip>
         <PostalTop>
           <Label>{label}</Label>
-          <Postmark aria-hidden="true"><span>CHRISTMAS</span><span>2026 · 12 · 25</span></Postmark>
+          <Postmark aria-hidden="true"><span>크리스마스</span><span>2026 · 12 · 25</span></Postmark>
         </PostalTop>
         <Message>{message}</Message>
-        <Route aria-hidden="true">SEOUL ───── ✦ ───── 12·25</Route>
+        <Route aria-hidden="true">서울 ───── ✦ ───── 12·25</Route>
       </DeliverySlip>
     </Scene>
   );

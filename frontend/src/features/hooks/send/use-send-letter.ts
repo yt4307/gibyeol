@@ -150,7 +150,7 @@ export function useSendLetter(sender?: `0x${string}`) {
             }
             try {
               await publicClient.getTransaction({ hash: pendingHash });
-              throw new Error("기존 거래가 아직 대기 중입니다. 같은 편지 ID로 확인을 계속합니다.");
+              throw new Error("기존 거래가 아직 대기 중입니다. 같은 기별 식별번호로 확인을 계속합니다.");
             } catch (cause) {
               if (cause instanceof Error && cause.message.startsWith("기존 거래")) throw cause;
               working = persist({ ...working, transactionHash: undefined });
@@ -186,19 +186,19 @@ export function useSendLetter(sender?: `0x${string}`) {
             const recovered = await recoverExisting();
             if (!recovered) {
               const rotatedKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));
-              if (rotatedKeyId === working.recipientKeyId) throw new Error("편지 거래가 revert되었습니다.");
+              if (rotatedKeyId === working.recipientKeyId) throw new Error("기별 거래가 블록체인에서 실패했습니다.");
               const rotatedPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [recipient, rotatedKeyId] });
               working = persist({ ...working, recipientKeyId: rotatedKeyId, sealedKeyHex: toHex(await wrapLetterKeyForRecipient(hexToBytes(working.letterKeyHex!, 32), hexToBytes(rotatedPublicKey, 32), createQuicknetTlock())), transactionHash: undefined });
               hash = await client.writeContract({ account: sender, address: contractAddress, abi: contractAbi, functionName: "sealLetter", args: [working.letterId, recipient, rotatedKeyId, working.encryptedTextHex!, working.sealedKeyHex!, working.archiveSha256!] });
               working = persist({ ...working, transactionHash: hash });
               receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-              if (receipt.status !== "success") throw new Error("키 재포장 후 거래도 revert되었습니다.");
+              if (receipt.status !== "success") throw new Error("수신 키를 다시 포장한 뒤에도 거래가 실패했습니다.");
             }
           }
         } catch (cause) {
           if (!await recoverExisting()) {
-            if (cause instanceof Error && cause.message.includes("revert")) throw cause;
-            throw new Error("거래 확인이 지연되고 있습니다. 같은 편지 ID로 다시 확인할 수 있어요.");
+            if (cause instanceof Error && cause.message.includes("블록체인에서 실패")) throw cause;
+            throw new Error("거래 확인이 지연되고 있습니다. 같은 기별 식별번호로 다시 확인할 수 있어요.");
           }
         }
         working = persist({ ...working, stage: "SEALED", transactionHash: hash, message: "", letterKeyHex: undefined });

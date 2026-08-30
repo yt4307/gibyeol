@@ -48,7 +48,7 @@ export function useInbox(address?: `0x${string}`) {
     try {
       const registeredPublicKey = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "mailboxPublicKeys", args: [letter.recipient, letter.recipientKeyId] });
       if (bytesToHex(keyPair.publicKey) !== registeredPublicKey.slice(2).toLowerCase()) {
-        throw new Error("Passkey에서 복구한 키가 온체인 메일박스 공개키와 다릅니다.");
+        throw new Error("패스키에서 복구한 키가 블록체인에 등록된 메일박스 공개키와 다릅니다.");
       }
       const calldata = await loadLetterCalldata(letter);
       const archiveResponse = await fetch(`${apiBaseUrl}/packages/${letter.archiveSha256.slice(2)}`);

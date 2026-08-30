@@ -21,10 +21,10 @@ export async function loadInbox(recipient: `0x${string}`): Promise<InboxLetter[]
 export async function loadLetterCalldata(letter: InboxLetter) {
   const transaction = await publicClient.getTransaction({ hash: letter.transactionHash });
   const decoded = decodeFunctionData({ abi: contractAbi, data: transaction.input });
-  if (decoded.functionName !== "sealLetter") throw new Error("편지 거래 calldata가 올바르지 않습니다.");
+  if (decoded.functionName !== "sealLetter") throw new Error("기별 거래의 호출 데이터가 올바르지 않습니다.");
   const [letterId, recipient, keyId, encryptedText, sealedKey, archiveSha256] = decoded.args;
   if (letterId !== letter.letterId || recipient.toLowerCase() !== letter.recipient.toLowerCase() || Number(keyId) !== letter.recipientKeyId || archiveSha256 !== letter.archiveSha256) {
-    throw new Error("이벤트와 거래 calldata가 일치하지 않습니다.");
+    throw new Error("블록체인 기록과 거래 호출 데이터가 일치하지 않습니다.");
   }
   return { encryptedText, sealedKey };
 }
@@ -35,8 +35,8 @@ export async function loadMailboxEnvelopes(owner: `0x${string}`, keyId: number) 
   if (!registration?.transactionHash) throw new Error("메일박스 등록 거래를 찾을 수 없습니다.");
   const transaction = await publicClient.getTransaction({ hash: registration.transactionHash });
   const decoded = decodeFunctionData({ abi: contractAbi, data: transaction.input });
-  if (decoded.functionName !== "registerMailboxKey") throw new Error("메일박스 등록 calldata가 올바르지 않습니다.");
+  if (decoded.functionName !== "registerMailboxKey") throw new Error("메일박스 등록 거래의 호출 데이터가 올바르지 않습니다.");
   const [publicKey, passkeyEnvelope, recoveryEnvelope] = decoded.args;
-  if (publicKey !== registration.args.publicKey) throw new Error("메일박스 이벤트와 calldata가 일치하지 않습니다.");
+  if (publicKey !== registration.args.publicKey) throw new Error("메일박스의 블록체인 기록과 호출 데이터가 일치하지 않습니다.");
   return { passkeyEnvelope, recoveryEnvelope };
 }

@@ -5,7 +5,7 @@ const meta = {
   title: "Home/Components/LetterPreview",
   component: LetterPreview,
   args: {
-    label: "2026 · CHRISTMAS POST",
+    label: "2026 · 크리스마스 우편",
     message: "그날의 당신에게,\n잊지 않고 전할게요.",
   },
 } satisfies Meta<typeof LetterPreview>;
