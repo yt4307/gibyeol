@@ -39,6 +39,7 @@ import {
   connectWalletProvider,
   connectedWalletProvider,
   isMobileBrowser,
+  resumeActiveWalletConnectTransport,
 } from "./wallet-provider";
 
 function setInjectedProvider(provider?: BrowserProvider) {
@@ -154,6 +155,24 @@ describe("wallet provider selection", () => {
     expect(isMobileBrowser("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile")).toBe(true);
     expect(isMobileBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/152")).toBe(false);
     expect(provider.connect).not.toHaveBeenCalled();
+  });
+
+  it("restarts the active WalletConnect relay after returning from a wallet app", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const restartTransport = vi.fn().mockResolvedValue(undefined);
+    const provider = {
+      session: approvedSession(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      request: vi.fn(),
+      signer: { client: { core: { relayer: { restartTransport } } } },
+    };
+    mocks.init.mockResolvedValue(provider);
+    await connectWalletProvider();
+
+    await resumeActiveWalletConnectTransport();
+
+    expect(restartTransport).toHaveBeenCalledOnce();
   });
 
   it("opens WalletConnect when another wallet is explicitly requested", async () => {
