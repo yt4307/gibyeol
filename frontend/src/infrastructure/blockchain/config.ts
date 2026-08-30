@@ -19,6 +19,7 @@ export const contractAbi = parseAbi([
 export const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
 export const chain = chainId === base.id ? base : chainId === baseSepolia.id ? baseSepolia : foundry;
 export const walletChainName = chainId === baseSepolia.id ? "Base Sepolia Testnet" : chain.name;
+export const blockExplorerUrl = chain.blockExplorers?.default.url;
 export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545";
 export const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 export const contractAddress = (process.env.NEXT_PUBLIC_GIBYEOL_CONTRACT_ADDRESS ??
