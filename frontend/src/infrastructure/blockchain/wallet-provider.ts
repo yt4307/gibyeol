@@ -69,6 +69,15 @@ export function isMobileBrowser(userAgent = navigator.userAgent): boolean {
   return /Android|iPhone|iPad|iPod/i.test(userAgent);
 }
 
+export function isIOSBrowser(
+  userAgent = navigator.userAgent,
+  platform = navigator.platform,
+  maxTouchPoints = navigator.maxTouchPoints,
+): boolean {
+  return /iPhone|iPad|iPod/i.test(userAgent)
+    || (/Macintosh/i.test(userAgent) && platform === "MacIntel" && maxTouchPoints > 1);
+}
+
 export function injectedWalletProvider(): BrowserProvider | undefined {
   return (window as typeof window & { ethereum?: BrowserProvider }).ethereum;
 }
@@ -137,7 +146,7 @@ export async function connectWalletProvider(
         description: "미래로 보내는 암호 편지",
         url: origin,
         icons: [],
-        redirect: { universal: origin },
+        ...(!isIOSBrowser() && { redirect: { universal: origin } }),
       },
       showQrModal: true,
     })) as WalletConnectProvider;

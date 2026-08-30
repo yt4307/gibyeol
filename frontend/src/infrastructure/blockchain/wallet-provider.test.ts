@@ -39,6 +39,7 @@ import {
   connectWalletProvider,
   connectedWalletProvider,
   disconnectActiveWalletSession,
+  isIOSBrowser,
   isMobileBrowser,
 } from "./wallet-provider";
 
@@ -99,6 +100,7 @@ describe("wallet provider selection", () => {
   });
 
   it("opens WalletConnect and keeps its provider for later transactions", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
       session?: ReturnType<typeof approvedSession>;
@@ -143,6 +145,29 @@ describe("wallet provider selection", () => {
     }));
   });
 
+  it("omits automatic WalletConnect redirects on iOS to preserve the original browser tab", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 CriOS/152 Mobile/15E148 Safari/604.1",
+    );
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider: {
+      session?: ReturnType<typeof approvedSession>;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: ReturnType<typeof vi.fn>;
+    } = {
+      session: undefined,
+      connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider();
+
+    expect(mocks.init.mock.calls[0]?.[0]?.metadata).not.toHaveProperty("redirect");
+  });
+
   it("disconnects a WalletConnect session while retaining its SDK instance", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider: {
@@ -181,6 +206,9 @@ describe("wallet provider selection", () => {
 
     expect(isMobileBrowser("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile")).toBe(true);
     expect(isMobileBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/152")).toBe(false);
+    expect(isIOSBrowser("Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X)")).toBe(true);
+    expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X)", "MacIntel", 5)).toBe(true);
+    expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X)", "MacIntel", 0)).toBe(false);
     expect(provider.connect).not.toHaveBeenCalled();
   });
 
