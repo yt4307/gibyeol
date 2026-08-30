@@ -28,7 +28,6 @@ import {
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
-  connectedWalletRedirectUrl,
   connectedWalletProvider,
   isMobileBrowser,
 } from "./wallet-provider";
@@ -130,12 +129,11 @@ describe("wallet provider selection", () => {
     expect(activeWalletConnector()).toBe("walletconnect");
   });
 
-  it("detects mobile browsers and exposes the connected wallet return link", async () => {
+  it("detects mobile browsers while retaining an approved WalletConnect session", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const provider = {
       session: {
         namespaces: { eip155: { methods: [...walletConnectRequiredMethodsForTest], events: ["accountsChanged", "chainChanged"] } },
-        peer: { metadata: { redirect: { native: "metamask://" } } },
       },
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -147,7 +145,7 @@ describe("wallet provider selection", () => {
 
     expect(isMobileBrowser("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile")).toBe(true);
     expect(isMobileBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/152")).toBe(false);
-    expect(connectedWalletRedirectUrl()).toBe("metamask://");
+    expect(provider.connect).not.toHaveBeenCalled();
   });
 
   it("opens WalletConnect when another wallet is explicitly requested", async () => {

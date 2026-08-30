@@ -16,7 +16,6 @@ import {
   connectedWalletProvider,
   injectedWalletProvider,
   isMobileBrowser,
-  openConnectedWallet,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
@@ -61,13 +60,7 @@ async function walletRequest<T>(
   args: { method: string; params?: readonly unknown[] | object },
 ): Promise<T> {
   try {
-    const response = provider.request(args) as Promise<T>;
-    if (activeWalletConnector() === "walletconnect"
-      && isMobileBrowser()
-      && ["personal_sign", "wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(args.method)) {
-      openConnectedWallet();
-    }
-    return await response;
+    return await provider.request(args) as T;
   } catch (cause) {
     throw new WalletRequestError(
       `${stage} 단계에서 요청을 처리하지 못했습니다.`,

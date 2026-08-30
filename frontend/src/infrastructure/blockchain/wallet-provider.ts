@@ -19,7 +19,6 @@ type WalletConnectProvider = BrowserProvider & {
   accounts?: string[];
   session?: {
     namespaces: Record<string, { methods?: string[]; events?: string[] }>;
-    peer?: { metadata?: { redirect?: { native?: string; universal?: string } } };
   };
 };
 
@@ -39,7 +38,6 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
-let activeWalletConnectProvider: WalletConnectProvider | undefined;
 
 function walletConnectSessionHasRequiredCapabilities(provider: WalletConnectProvider): boolean {
   if (!provider.session) return false;
@@ -52,22 +50,6 @@ function walletConnectSessionHasRequiredCapabilities(provider: WalletConnectProv
 
 export function isMobileBrowser(userAgent = navigator.userAgent): boolean {
   return /Android|iPhone|iPad|iPod/i.test(userAgent);
-}
-
-export function connectedWalletRedirectUrl(): string | undefined {
-  const redirect = activeWalletConnectProvider?.session?.peer?.metadata?.redirect;
-  const value = redirect?.native ?? redirect?.universal;
-  if (!value || !/^(?:https:|[a-z][a-z0-9+.-]*:)/i.test(value) || /^(?:javascript|data):/i.test(value)) {
-    return undefined;
-  }
-  return value;
-}
-
-export function openConnectedWallet(): boolean {
-  const redirect = connectedWalletRedirectUrl();
-  if (!redirect) return false;
-  window.location.assign(redirect);
-  return true;
 }
 
 export function injectedWalletProvider(): BrowserProvider | undefined {
@@ -102,7 +84,6 @@ export async function connectWalletProvider(
     }
     activeProvider = injected;
     activeConnector = "injected";
-    activeWalletConnectProvider = undefined;
     return { connector: "injected", provider: injected };
   }
 
@@ -151,12 +132,10 @@ export async function connectWalletProvider(
   }
   activeProvider = provider;
   activeConnector = "walletconnect";
-  activeWalletConnectProvider = provider;
   return { connector: "walletconnect", provider, accounts: provider.accounts };
 }
 
 export function clearActiveWalletProvider(): void {
   activeProvider = undefined;
   activeConnector = undefined;
-  activeWalletConnectProvider = undefined;
 }
