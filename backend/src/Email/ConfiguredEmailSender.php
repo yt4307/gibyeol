@@ -13,6 +13,7 @@ final class ConfiguredEmailSender implements EmailSender
         private readonly string $emailProvider,
         private readonly string $resendApiKey,
         private readonly string $emailFrom,
+        private readonly EmailTemplateRenderer $templates,
     ) {
     }
 
@@ -26,6 +27,7 @@ final class ConfiguredEmailSender implements EmailSender
             'to' => [$email],
             'subject' => '기별 이메일 인증 코드',
             'text' => "기별 인증 코드는 {$code}입니다. 10분 안에 입력해 주세요.",
+            'html' => $this->templates->verification($code),
         ]);
     }
 
@@ -37,8 +39,9 @@ final class ConfiguredEmailSender implements EmailSender
         return $this->send([
             'from' => $this->emailFrom,
             'to' => [$email],
-            'subject' => '기별이 도착했습니다',
-            'text' => "기다리던 기별 {$letterCount}통이 도착했습니다. 지갑과 Passkey로 확인해 주세요.",
+            'subject' => '12월 25일, 기다리던 기별이 도착했습니다',
+            'text' => "기다리던 기별 {$letterCount}통이 도착했습니다. 지갑과 패스키로 확인해 주세요.",
+            'html' => $this->templates->christmas($letterCount),
         ], $idempotencyKey);
     }
 
