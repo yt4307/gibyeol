@@ -11,10 +11,8 @@ import {
 import {
   activeWalletConnector,
   activeWalletProvider,
-  clearActiveWalletProvider,
   connectWalletProvider,
   connectedWalletProvider,
-  disconnectActiveWalletProvider,
   injectedWalletProvider,
   isMobileBrowser,
 } from "@/infrastructure/blockchain/wallet-provider";
@@ -94,7 +92,6 @@ export function useWalletSession() {
     setSession(null);
     setAuthenticationStatus("anonymous");
     setWalletAccountMismatch(false);
-    clearActiveWalletProvider();
     if (notifyServer) {
       void fetch(`${apiBaseUrl}/auth/logout`, {
         method: "POST",
@@ -393,7 +390,6 @@ export function useWalletSession() {
       setAuthenticationStatus("anonymous");
       setWalletAccountMismatch(false);
       setPendingSignature(null);
-      await disconnectActiveWalletProvider();
       setWalletProgress(null);
       setPendingAction(null);
     }

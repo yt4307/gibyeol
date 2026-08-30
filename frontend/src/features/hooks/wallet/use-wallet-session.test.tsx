@@ -472,6 +472,67 @@ describe("useWalletSession", () => {
     expect(result.current.authenticated).toBe(true);
   });
 
+  it("keeps the WalletConnect session available after logout and signs in again", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
+      if (method === "personal_sign") return "0xsignature";
+      return null;
+    });
+    const approvedWalletSession = () => ({
+      namespaces: {
+        eip155: {
+          accounts: [`eip155:${chainId}:${address}`],
+          chains: [`eip155:${chainId}`],
+          methods: ["eth_sendTransaction", "personal_sign"],
+          events: ["accountsChanged", "chainChanged"],
+        },
+      },
+    });
+    const walletConnectProvider: {
+      accounts: string[];
+      session?: ReturnType<typeof approvedWalletSession>;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: typeof request;
+    } = {
+      accounts: [address],
+      session: undefined,
+      connect: vi.fn().mockImplementation(async () => {
+        walletConnectProvider.session = approvedWalletSession();
+      }),
+      disconnect: vi.fn().mockImplementation(async () => {
+        walletConnectProvider.session = undefined;
+      }),
+      request,
+    };
+    walletConnectMocks.init.mockResolvedValue(walletConnectProvider);
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "First challenge" }) })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Second challenge" }) })
+      .mockResolvedValueOnce({ ok: true }));
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.restoring).toBe(false));
+    await act(async () => { await result.current.connect(); });
+    await act(async () => { await result.current.continueAuthentication(); });
+    expect(result.current.authenticated).toBe(true);
+
+    await act(async () => { await result.current.logout(); });
+    expect(result.current.authenticated).toBe(false);
+    await act(async () => { await result.current.connect(); });
+    await act(async () => { await result.current.continueAuthentication(); });
+
+    expect(walletConnectMocks.init).toHaveBeenCalledOnce();
+    expect(walletConnectProvider.disconnect).not.toHaveBeenCalled();
+    expect(walletConnectProvider.connect).toHaveBeenCalledOnce();
+    expect(request.mock.calls.filter(([args]) => args.method === "personal_sign")).toHaveLength(2);
+    expect(result.current.authenticated).toBe(true);
+  });
+
   it("asks an injected wallet to approve accounts again when changing accounts", async () => {
     cacheWalletSession();
     const request = vi.fn(async ({ method }: { method: string }) => {
