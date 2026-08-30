@@ -25,15 +25,6 @@ type WalletConnectProvider = BrowserProvider & {
       events?: string[];
     }>;
   };
-  signer?: {
-    client?: {
-      core?: {
-        relayer?: {
-          restartTransport(): Promise<void>;
-        };
-      };
-    };
-  };
 };
 
 const walletConnectRequiredMethods = [
@@ -53,7 +44,6 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
 let activeWalletConnectProvider: WalletConnectProvider | undefined;
-let walletConnectTransportRestart: Promise<void> | undefined;
 
 function walletConnectSessionHasRequiredCapabilities(
   provider: WalletConnectProvider,
@@ -147,7 +137,6 @@ export async function connectWalletProvider(
         description: "미래로 보내는 암호 편지",
         url: origin,
         icons: [],
-        redirect: { universal: origin },
       },
       showQrModal: true,
     })) as WalletConnectProvider;
@@ -180,25 +169,13 @@ export async function disconnectActiveWalletProvider(): Promise<void> {
   activeProvider = undefined;
   activeConnector = undefined;
   activeWalletConnectProvider = undefined;
-  walletConnectTransportRestart = undefined;
   if (provider?.session) {
     await provider.disconnect().catch(() => undefined);
   }
-}
-
-export async function resumeActiveWalletConnectTransport(): Promise<void> {
-  const relayer = activeWalletConnectProvider?.signer?.client?.core?.relayer;
-  if (!relayer) return;
-  if (!walletConnectTransportRestart) {
-    walletConnectTransportRestart = relayer.restartTransport()
-      .finally(() => { walletConnectTransportRestart = undefined; });
-  }
-  await walletConnectTransportRestart;
 }
 
 export function clearActiveWalletProvider(): void {
   activeProvider = undefined;
   activeConnector = undefined;
   activeWalletConnectProvider = undefined;
-  walletConnectTransportRestart = undefined;
 }

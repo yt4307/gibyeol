@@ -17,7 +17,6 @@ import {
   disconnectActiveWalletProvider,
   injectedWalletProvider,
   isMobileBrowser,
-  resumeActiveWalletConnectTransport,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
@@ -182,38 +181,6 @@ export function useWalletSession() {
       provider.removeListener?.("accountsChanged", handleAccountsChanged);
     };
   }, [session]);
-
-  useEffect(() => {
-    if (walletProgress !== "signature" || activeWalletConnector() !== "walletconnect") return;
-    let leftBrowser = document.visibilityState === "hidden";
-
-    const resumeTransport = () => {
-      if (!leftBrowser || document.visibilityState === "hidden") return;
-      leftBrowser = false;
-      void resumeActiveWalletConnectTransport().catch(() => {
-        setError("지갑 응답 연결을 복구하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.");
-      });
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        leftBrowser = true;
-        return;
-      }
-      resumeTransport();
-    };
-    const handlePageHide = () => { leftBrowser = true; };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", resumeTransport);
-    window.addEventListener("pageshow", resumeTransport);
-    window.addEventListener("pagehide", handlePageHide);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", resumeTransport);
-      window.removeEventListener("pageshow", resumeTransport);
-      window.removeEventListener("pagehide", handlePageHide);
-    };
-  }, [walletProgress]);
 
   const authenticateAddress = useCallback(async (
     provider: NonNullable<ReturnType<typeof activeWalletProvider>>,

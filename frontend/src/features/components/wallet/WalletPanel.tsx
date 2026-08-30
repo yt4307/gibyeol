@@ -67,7 +67,7 @@ export function WalletPanel({
         </> : pendingSignatureAddress
           ? <Button type="button" onClick={onContinueSignature} disabled={busy || restoring}>
             {busy
-              ? walletProgress === "signature" ? "지갑에서 서명 승인 대기 중…"
+              ? walletProgress === "signature" ? "승인 후 브라우저로 돌아와 주세요…"
                 : walletProgress === "verify" ? "로그인 확인 중…"
                   : "서명 요청 준비 중…"
               : "지갑에서 서명하기"}
@@ -102,7 +102,7 @@ export function WalletPanel({
         </AccountList>
       </AccountChooser>}
       {!address && !restoring && <HelpText>{pendingSignatureAddress
-        ? "연결이 완료되었습니다. 버튼을 누른 뒤 지갑 앱에서 로그인 서명을 승인해 주세요."
+        ? "연결이 완료되었습니다. 지갑에서 서명을 승인한 뒤 브라우저의 기별 탭으로 직접 돌아와 주세요."
         : "모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요."}</HelpText>}
       {error && <ErrorText role="alert">{error}</ErrorText>}
     </Panel>
