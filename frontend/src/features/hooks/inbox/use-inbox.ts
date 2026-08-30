@@ -26,18 +26,20 @@ const rtrim = (value: string) => value.replace(/=+$/, "");
 const mediaType = (codec: number) => codec === 1 ? "image/webp" : codec === 2 ? "image/jpeg" : codec === 16 ? "video/webm" : "video/mp4";
 
 export function useInbox(address?: `0x${string}`) {
+  type InboxActivity = "loading" | "opening" | "requesting-code" | "recovering";
   const [letters, setLetters] = useState<InboxLetter[]>([]);
   const [selected, setSelected] = useState<InboxLetter | null>(null);
   const [opened, setOpened] = useState<OpenedLetter | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState<InboxActivity | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!address) return;
-    setBusy(true); setError(null);
+    setSelected(null); setBusy(true); setActivity("loading"); setError(null);
     try { setLetters(await loadInbox(address)); }
     catch (cause) { setError(userFacingErrorMessage(cause, "받은 편지를 불러오지 못했습니다.")); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setActivity(null); }
   }, [address]);
 
   useEffect(() => { queueMicrotask(() => { void refresh(); }); }, [refresh]);
@@ -77,27 +79,27 @@ export function useInbox(address?: `0x${string}`) {
   }, []);
 
   const open = useCallback(async (letter: InboxLetter) => {
-    setSelected(letter); setOpened(null); setBusy(true); setError(null);
+    setSelected(letter); setOpened(null); setBusy(true); setActivity("opening"); setError(null);
     try {
       const envelopes = await loadMailboxEnvelopes(letter.recipient, letter.recipientKeyId);
       return await decryptWith(letter, await openPasskeyMailbox(hexToBytes(envelopes.passkeyEnvelope)));
     } catch (cause) { setError(userFacingErrorMessage(cause, "편지를 열지 못했습니다.")); throw cause; }
-    finally { setBusy(false); }
+    finally { setBusy(false); setActivity(null); }
   }, [decryptWith]);
 
   const requestEmailCode = useCallback(async (email: string) => {
-    setBusy(true); setError(null);
+    setBusy(true); setActivity("requesting-code"); setError(null);
     try {
       const response = await fetch(`${apiBaseUrl}/mailbox/email/challenge`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
       if (!response.ok) throw await apiResponseError(response, "인증 메일을 보내지 못했습니다.");
     } catch (cause) {
       setError(userFacingErrorMessage(cause, "인증 메일을 보내지 못했습니다."));
       throw cause;
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setActivity(null); }
   }, []);
 
   const recover = useCallback(async (letter: InboxLetter, code: string) => {
-    setBusy(true); setError(null);
+    setBusy(true); setActivity("recovering"); setError(null);
     try {
       const verify = await fetch(`${apiBaseUrl}/mailbox/email/verify`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
       if (!verify.ok) throw await apiResponseError(verify, "이메일 인증번호를 확인해 주세요.");
@@ -123,8 +125,8 @@ export function useInbox(address?: `0x${string}`) {
         clientPair?.privateKey.fill(0);
       }
     } catch (cause) { setError(userFacingErrorMessage(cause, "메일박스를 복구하지 못했습니다.")); throw cause; }
-    finally { setBusy(false); }
+    finally { setBusy(false); setActivity(null); }
   }, [decryptWith]);
 
-  return { letters, selected, opened, busy, error, refresh, open, requestEmailCode, recover };
+  return { letters, selected, opened, busy, activity, error, refresh, open, requestEmailCode, recover };
 }
