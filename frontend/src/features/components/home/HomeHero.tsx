@@ -22,7 +22,7 @@ export function HomeHero({ content }: HomeHeroProps) {
         : `크리스마스까지 D-${daysRemaining}`;
 
   return (
-    <Shell>
+    <Shell id="main-content" tabIndex={-1}>
       <Header>
         <BrandWordmark>{content.wordmark}</BrandWordmark>
         <StatusPill label={statusLabel} />

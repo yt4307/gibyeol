@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SendDraft } from "@features/data/send/send-draft";
 
@@ -27,7 +27,7 @@ describe("ComposeLetter", () => {
     expect((screen.getByRole("button", { name: "봉인하고 지갑에서 승인" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("shows selected files and confirms before discarding a draft", () => {
+  it("shows selected files and confirms before discarding a draft", async () => {
     render(<ComposeLetter {...props} draft={{ ...draft, message: "기다릴게" }} />);
     const file = new File([new Uint8Array(2048)], "겨울밤.jpg", { type: "image/jpeg", lastModified: 1 });
     fireEvent.change(screen.getByLabelText(/사진·타임랩스/), { target: { files: [file] } });
@@ -35,7 +35,8 @@ describe("ComposeLetter", () => {
     expect(screen.getAllByText("2.0KB")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "새로 작성" }));
-    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    const dialog = screen.getByRole("alertdialog");
+    await waitFor(() => expect(document.activeElement).toBe(dialog));
     fireEvent.click(screen.getByRole("button", { name: "내용 지우기" }));
     expect(props.onReset).toHaveBeenCalledOnce();
   });

@@ -28,7 +28,7 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
     { label: "도착 안내", complete: Boolean(email.verified), active: mailboxReady && !email.verified },
   ];
   const completedSteps = onboardingSteps.filter(({ complete }) => complete).length;
-  return <Shell>
+  return <Shell id="main-content" tabIndex={-1} aria-busy={wallet.restoring || undefined}>
     <Top><Link href="/"><BrandWordmark /></Link><DateMark>크리스마스 우체국 · 2026</DateMark></Top>
     <Intro>
       <Eyebrow>시간을 건너는 디지털 우체국</Eyebrow>
@@ -49,7 +49,7 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
         </JourneyList>
       </Journey>
       <WalletPanel
-        address={wallet.session?.address}
+        address={authenticatedAddress}
         availableAccounts={wallet.availableAccounts}
         pendingSignatureAddress={wallet.pendingSignatureAddress}
         busy={wallet.busy}

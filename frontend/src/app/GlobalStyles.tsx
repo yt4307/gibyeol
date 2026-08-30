@@ -248,6 +248,7 @@ const globalStyles = css`
   a,
   button {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   button {
@@ -305,6 +306,24 @@ const globalStyles = css`
   :focus-visible {
     outline: 2px solid var(--color-accent-primary);
     outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: fixed;
+    z-index: 9999;
+    top: var(--space-3);
+    left: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-identity-midnight-navy);
+    background: var(--color-accent-primary);
+    border-radius: 3px;
+    font-weight: 700;
+    transform: translateY(calc(-100% - var(--space-6)));
+    transition: transform 140ms ease;
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
   }
 
   ::selection {

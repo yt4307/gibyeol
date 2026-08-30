@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/stores/use-app-store";
 
@@ -110,13 +110,14 @@ describe("PostOfficeFlow integration", () => {
     expect(screen.queryByTestId("inbox-flow")).toBeNull();
   });
 
-  it("deactivates a mailbox and offers reactivation with a new key", () => {
+  it("deactivates a mailbox and offers reactivation with a new key", async () => {
     useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
     setMailboxState(2, true);
     const first = render(<PostOfficeFlow />);
 
     fireEvent.click(screen.getByRole("button", { name: "메일박스 비활성화" }));
-    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    const dialog = screen.getByRole("alertdialog");
+    await waitFor(() => expect(document.activeElement).toBe(dialog));
     fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
     expect(mocks.deactivateMailbox).toHaveBeenCalledOnce();
 
@@ -129,6 +130,15 @@ describe("PostOfficeFlow integration", () => {
     expect(screen.getByText("메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "새 키로 다시 활성화" }));
     expect(mocks.registerMailbox).toHaveBeenCalledOnce();
+  });
+
+  it("does not present a cached address as authenticated while restoring", () => {
+    useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "restoring" });
+    render(<PostOfficeFlow />);
+
+    expect(screen.getByText("로그인 상태를 불러오는 중이에요")).toBeTruthy();
+    expect(screen.queryByText("0x111111…111111")).toBeNull();
+    expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("true");
   });
 
   it("selects the routed flow and preserves the wallet session across remounts", () => {

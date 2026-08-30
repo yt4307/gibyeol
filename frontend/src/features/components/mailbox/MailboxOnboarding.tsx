@@ -1,12 +1,14 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type MailboxOnboardingProps = { keyId?: number | null; active?: boolean | null; busy?: boolean; error?: string | null; onRegister: () => void; onDeactivate: () => void };
 
 export function MailboxOnboarding({ keyId, active, busy, error, onRegister, onDeactivate }: MailboxOnboardingProps) {
   const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (confirmingDeactivate) confirmRef.current?.focus(); }, [confirmingDeactivate]);
   const registered = Boolean(keyId);
   const checking = registered && active == null;
   const activeMailbox = registered && active === true;
@@ -15,7 +17,7 @@ export function MailboxOnboarding({ keyId, active, busy, error, onRegister, onDe
     {activeMailbox
       ? <DeactivateButton type="button" disabled={busy} onClick={() => setConfirmingDeactivate(true)}>{busy ? "비활성화 중…" : "메일박스 비활성화"}</DeactivateButton>
       : <Button type="button" disabled={busy || checking || activeMailbox} onClick={onRegister}>{busy ? "봉투 만드는 중…" : checking ? "상태 확인 중…" : activeMailbox ? "등록 완료" : registered ? "새 키로 다시 활성화" : "메일박스 만들기"}</Button>}
-    {confirmingDeactivate && <Confirm role="alertdialog" aria-labelledby="deactivate-title" aria-describedby="deactivate-description">
+    {confirmingDeactivate && <Confirm ref={confirmRef} tabIndex={-1} role="alertdialog" aria-labelledby="deactivate-title" aria-describedby="deactivate-description">
       <div><strong id="deactivate-title">새 기별 받기를 멈출까요?</strong><p id="deactivate-description">기존 기별과 키는 유지되지만, 다시 활성화하기 전까지 새 기별을 받을 수 없습니다.</p></div>
       <ConfirmActions><CancelButton type="button" onClick={() => setConfirmingDeactivate(false)} disabled={busy}>계속 사용</CancelButton><ConfirmButton type="button" onClick={() => { setConfirmingDeactivate(false); onDeactivate(); }} disabled={busy}>비활성화</ConfirmButton></ConfirmActions>
     </Confirm>}
@@ -30,7 +32,7 @@ const Button = styled.button`justify-self:start;min-height:44px;padding:0 var(--
 const DeactivateButton = styled(Button)`color:#e2a29c;background:rgb(166 70 62 / 8%);border-color:rgb(166 70 62 / 52%);`;
 const Confirm = styled.div`display:grid;gap:var(--space-4);padding:var(--space-4);border:1px solid rgb(166 70 62 / 52%);border-radius:3px;background:rgb(166 70 62 / 8%);strong{color:var(--color-text-primary);}p{margin-top:var(--space-1);color:var(--color-text-muted);font-size:var(--font-size-100);line-height:1.55;}`;
 const ConfirmActions = styled.div`display:flex;gap:var(--space-2);flex-wrap:wrap;`;
-const CancelButton = styled.button`min-height:40px;padding:0 var(--space-4);border:1px solid var(--color-border);border-radius:3px;color:var(--color-text-primary);background:transparent;cursor:pointer;`;
+const CancelButton = styled.button`min-height:44px;padding:0 var(--space-4);border:1px solid var(--color-border);border-radius:3px;color:var(--color-text-primary);background:transparent;cursor:pointer;`;
 const ConfirmButton = styled(CancelButton)`border-color:var(--color-status-error);color:#f3bbb6;background:rgb(166 70 62 / 12%);`;
 const StatusText = styled.p`color:var(--color-accent-primary);font-size:var(--font-size-100);`;
-const ErrorText = styled.p`color:var(--color-status-error);`;
+const ErrorText = styled.p`color:var(--color-status-error);&::before{margin-right:var(--space-2);content:"⚠";}`;

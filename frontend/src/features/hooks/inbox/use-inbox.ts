@@ -12,7 +12,7 @@ import {
   unwrapLetterKeyForRecipient,
   type MailboxKeyPair,
 } from "@gibyeol/protocol";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, publicClient } from "@/infrastructure/blockchain/config";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
@@ -33,16 +33,26 @@ export function useInbox(address?: `0x${string}`) {
   const [busy, setBusy] = useState(false);
   const [activity, setActivity] = useState<InboxActivity | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const refreshSequence = useRef(0);
 
   const refresh = useCallback(async () => {
     if (!address) return;
+    const sequence = ++refreshSequence.current;
     setSelected(null); setBusy(true); setActivity("loading"); setError(null);
-    try { setLetters(await loadInbox(address)); }
-    catch (cause) { setError(userFacingErrorMessage(cause, "받은 편지를 불러오지 못했습니다.")); }
-    finally { setBusy(false); setActivity(null); }
+    try {
+      const next = await loadInbox(address);
+      if (sequence === refreshSequence.current) setLetters(next);
+    }
+    catch (cause) {
+      if (sequence === refreshSequence.current) setError(userFacingErrorMessage(cause, "받은 편지를 불러오지 못했습니다."));
+    }
+    finally {
+      if (sequence === refreshSequence.current) { setBusy(false); setActivity(null); }
+    }
   }, [address]);
 
   useEffect(() => { queueMicrotask(() => { void refresh(); }); }, [refresh]);
+  useEffect(() => () => { refreshSequence.current += 1; }, []);
   useEffect(() => () => { opened?.media.forEach(({ url }) => URL.revokeObjectURL(url)); }, [opened]);
 
   const decryptWith = useCallback(async (letter: InboxLetter, keyPair: MailboxKeyPair) => {

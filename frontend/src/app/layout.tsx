@@ -29,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="ko-KR" className={`${pretendard.variable} ${maruBuri.variable}`}>
       <body>
+        <a className="skip-link" href="#main-content">본문으로 바로가기</a>
         <EmotionRegistry>
           <Providers>
             <GlobalStyles />

@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { isAddress } from "viem";
 import { blockExplorerUrl } from "@/infrastructure/blockchain/config";
 import { formatMediaBytes, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
@@ -24,6 +24,8 @@ const progressLabels = ["소포 꾸리기", "안전하게 맡기기", "지갑으
 export function ComposeLetter({ draft, busy = false, error, mediaSummary, onChange, onSubmit, onReset }: ComposeLetterProps) {
   const [selection, setSelection] = useState<{ letterId: string; files: readonly File[] } | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const resetConfirmRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (confirmingReset) resetConfirmRef.current?.focus(); }, [confirmingReset]);
   const selectedFiles = selection?.letterId === draft.letterId ? selection.files : [];
   const selectedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
   const recipientValid = isAddress(draft.recipient);
@@ -74,7 +76,7 @@ export function ComposeLetter({ draft, busy = false, error, mediaSummary, onChan
       {!complete && <Submit disabled={busy || !formReady}>{busy ? sendStageLabel[draft.stage] : editable ? "봉인하고 지갑에서 승인" : "접수 이어하기"}</Submit>}
       <Reset type="button" disabled={busy} onClick={() => editable && (draft.message || draft.recipient || selectedFiles.length) ? setConfirmingReset(true) : reset()}>{complete ? "새 기별 쓰기" : "새로 작성"}</Reset>
     </Actions>
-    {confirmingReset && <ResetConfirm role="alertdialog" aria-labelledby="reset-title"><div><strong id="reset-title">작성 중인 내용을 지울까요?</strong><p>입력한 편지와 선택한 첨부파일을 되돌릴 수 없습니다.</p></div><div><button type="button" onClick={() => setConfirmingReset(false)}>계속 작성</button><button type="button" className="danger" onClick={reset}>내용 지우기</button></div></ResetConfirm>}
+    {confirmingReset && <ResetConfirm ref={resetConfirmRef} tabIndex={-1} role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-description"><div><strong id="reset-title">작성 중인 내용을 지울까요?</strong><p id="reset-description">입력한 편지와 선택한 첨부파일을 되돌릴 수 없습니다.</p></div><div><button type="button" onClick={() => setConfirmingReset(false)}>계속 작성</button><button type="button" className="danger" onClick={reset}>내용 지우기</button></div></ResetConfirm>}
     {busy && <BusyMessage role="status" aria-live="polite">{sendStageLabel[draft.stage]}입니다. 이 화면을 닫지 말아 주세요.</BusyMessage>}
     {error && <ErrorText role="alert">{error}</ErrorText>}
   </Form>;
@@ -99,9 +101,9 @@ const ApprovalNote = styled.p`padding:var(--space-4);border-left:2px solid var(-
 const Actions = styled.div`display:flex;gap:var(--space-3);flex-wrap:wrap;@media(max-width:640px){position:sticky;z-index:4;bottom:0;margin:0 calc(var(--space-5) * -1) calc(var(--space-5) * -1);padding:var(--space-3) var(--space-5);border-top:1px solid var(--color-border);background:rgb(11 19 32 / 94%);backdrop-filter:blur(14px);button{flex:1;}}`;
 const Submit = styled.button`min-height:48px;padding:0 var(--space-6);border:1px solid var(--color-accent-primary);border-radius:3px;background:var(--color-accent-primary);color:var(--color-identity-midnight-navy);font-weight:600;cursor:pointer;&:disabled{opacity:.55;cursor:not-allowed;}`;
 const Reset = styled.button`min-height:48px;padding:0 var(--space-5);border:1px solid var(--color-border);border-radius:3px;background:transparent;color:var(--color-text-muted);cursor:pointer;&:disabled{opacity:.55;cursor:not-allowed;}`;
-const ResetConfirm = styled.div`display:flex;justify-content:space-between;gap:var(--space-4);align-items:center;padding:var(--space-4);border:1px solid rgb(166 70 62 / 52%);background:rgb(166 70 62 / 8%);strong{color:var(--color-text-primary);}p{margin-top:var(--space-1);color:var(--color-text-muted);font-size:var(--font-size-100);}div:last-child{display:flex;gap:var(--space-2);}button{min-height:40px;padding:0 var(--space-3);border:1px solid var(--color-border);border-radius:3px;color:var(--color-text-primary);background:transparent;cursor:pointer;}.danger{border-color:var(--color-status-error);color:#f3bbb6;}@media(max-width:600px){align-items:stretch;flex-direction:column;}`;
+const ResetConfirm = styled.div`display:flex;justify-content:space-between;gap:var(--space-4);align-items:center;padding:var(--space-4);border:1px solid rgb(166 70 62 / 52%);background:rgb(166 70 62 / 8%);strong{color:var(--color-text-primary);}p{margin-top:var(--space-1);color:var(--color-text-muted);font-size:var(--font-size-100);}div:last-child{display:flex;gap:var(--space-2);}button{min-height:44px;padding:0 var(--space-3);border:1px solid var(--color-border);border-radius:3px;color:var(--color-text-primary);background:transparent;cursor:pointer;}.danger{border-color:var(--color-status-error);color:#f3bbb6;}@media(max-width:600px){align-items:stretch;flex-direction:column;}`;
 const BusyMessage = styled.p`color:var(--color-accent-primary);font-size:var(--font-size-100);`;
-const ErrorText = styled.p`color:var(--color-status-error);`;
+const ErrorText = styled.p`color:var(--color-status-error);&::before{margin-right:var(--space-2);content:"⚠";}`;
 const Completion = styled.section`display:grid;grid-template-columns:auto 1fr;gap:var(--space-4);align-items:start;padding:var(--space-6);border:1px solid var(--color-accent-primary);background:rgb(217 199 163 / 7%);h3{font-family:var(--font-family-display);font-size:var(--font-size-400);}p{margin-top:var(--space-2);color:var(--color-text-muted);line-height:1.6;}`;
 const CompletionMark = styled.span`display:grid;place-items:center;width:46px;height:46px;border-radius:48% 52% 46% 54%;color:var(--color-identity-midnight-navy);background:var(--color-accent-primary);font-size:22px;`;
 const CompletionActions = styled.div`grid-column:2;display:flex;gap:var(--space-3);flex-wrap:wrap;a{min-height:40px;display:inline-flex;align-items:center;padding:0 var(--space-4);border:1px solid var(--color-border);border-radius:3px;color:var(--color-text-primary);&:first-of-type{border-color:var(--color-accent-primary);color:var(--color-identity-midnight-navy);background:var(--color-accent-primary);}}@media(max-width:520px){grid-column:1/-1;a{flex:1;justify-content:center;}}`;

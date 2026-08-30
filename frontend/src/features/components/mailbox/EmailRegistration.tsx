@@ -14,4 +14,4 @@ const Label = styled.p`margin:0!important;font-size:11px;font-weight:600;letter-
 const Fields = styled.div`display:grid;grid-template-columns:1fr auto;gap:var(--space-3);input{min-height:44px;padding:0 var(--space-3);border:1px solid var(--color-border);border-radius:3px;}button{min-height:44px;padding:0 var(--space-4);border:1px solid var(--color-accent-primary);border-radius:3px;background:var(--color-accent-primary);color:var(--color-identity-midnight-navy);cursor:pointer;&:disabled{opacity:.5}}@media(max-width:600px){grid-template-columns:1fr;}`;
 const Guide = styled.p`margin:0!important;font-size:var(--font-size-100);`;
 const StatusText = styled.p`margin:0!important;color:var(--color-accent-primary)!important;font-size:var(--font-size-100);`;
-const ErrorText = styled.p`color:var(--color-status-error)!important;`;
+const ErrorText = styled.p`color:var(--color-status-error)!important;&::before{margin-right:var(--space-2);content:"⚠";}`;
