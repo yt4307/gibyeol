@@ -8,6 +8,7 @@ const transactionHash = `0x${"aa".repeat(32)}` as const;
 
 const mocks = vi.hoisted(() => ({
   readContract: vi.fn(),
+  getBlockNumber: vi.fn(),
   getLogs: vi.fn(),
   getTransaction: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("@/infrastructure/blockchain/config", () => ({
   deploymentBlock: 1n,
   publicClient: {
     readContract: mocks.readContract,
+    getBlockNumber: mocks.getBlockNumber,
     getLogs: mocks.getLogs,
     getTransaction: mocks.getTransaction,
     waitForTransactionReceipt: mocks.waitForTransactionReceipt,
@@ -87,6 +89,7 @@ describe("useSendLetter", () => {
     });
     mocks.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     mocks.writeContract.mockResolvedValue(transactionHash);
+    mocks.getBlockNumber.mockResolvedValue(1n);
     mocks.getLogs.mockResolvedValue([]);
   });
 

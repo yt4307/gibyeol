@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { isAddress, parseAbiItem, toHex } from "viem";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@/infrastructure/blockchain/config";
+import { loadBlockRangePages } from "@/infrastructure/blockchain/log-ranges";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
 import { preprocessMediaFiles, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
@@ -129,7 +130,8 @@ export function useSendLetter(sender?: `0x${string}`) {
         const recoverExisting = async () => {
           const sealed = await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "sealedLetters", args: [working.letterId] });
           if (!sealed) return null;
-          const logs = await publicClient.getLogs({ address: contractAddress, event: letterEvent, args: { letterId: working.letterId }, fromBlock: deploymentBlock, toBlock: "latest" });
+          const logs = await loadBlockRangePages(deploymentBlock, await publicClient.getBlockNumber(), (range) =>
+            publicClient.getLogs({ address: contractAddress, event: letterEvent, args: { letterId: working.letterId }, ...range }));
           return logs.at(-1)?.transactionHash ?? working.transactionHash ?? null;
         };
         const alreadySealed = await recoverExisting();

@@ -1,12 +1,14 @@
 import { decodeFunctionData, parseAbiItem } from "viem";
 import { contractAbi, contractAddress, deploymentBlock, publicClient } from "@/infrastructure/blockchain/config";
+import { loadBlockRangePages } from "@/infrastructure/blockchain/log-ranges";
 import type { InboxLetter } from "./inbox";
 
 const letterEvent = parseAbiItem("event LetterSealed(bytes32 indexed letterId, address indexed sender, address indexed recipient, uint32 recipientKeyId, bytes32 archiveSha256)");
 const mailboxEvent = parseAbiItem("event MailboxKeyRegistered(address indexed owner, uint32 indexed keyId, bytes32 publicKey)");
 
 export async function loadInbox(recipient: `0x${string}`): Promise<InboxLetter[]> {
-  const logs = await publicClient.getLogs({ address: contractAddress, event: letterEvent, args: { recipient }, fromBlock: deploymentBlock, toBlock: "latest" });
+  const logs = await loadBlockRangePages(deploymentBlock, await publicClient.getBlockNumber(), (range) =>
+    publicClient.getLogs({ address: contractAddress, event: letterEvent, args: { recipient }, ...range }));
   return logs.flatMap((log) => log.args.letterId && log.args.sender && log.args.recipient && log.args.recipientKeyId !== undefined && log.args.archiveSha256 && log.transactionHash && log.blockNumber !== null ? [{
     letterId: log.args.letterId,
     sender: log.args.sender,
@@ -30,7 +32,8 @@ export async function loadLetterCalldata(letter: InboxLetter) {
 }
 
 export async function loadMailboxEnvelopes(owner: `0x${string}`, keyId: number) {
-  const logs = await publicClient.getLogs({ address: contractAddress, event: mailboxEvent, args: { owner, keyId }, fromBlock: deploymentBlock, toBlock: "latest" });
+  const logs = await loadBlockRangePages(deploymentBlock, await publicClient.getBlockNumber(), (range) =>
+    publicClient.getLogs({ address: contractAddress, event: mailboxEvent, args: { owner, keyId }, ...range }));
   const registration = logs.at(-1);
   if (!registration?.transactionHash) throw new Error("메일박스 등록 거래를 찾을 수 없습니다.");
   const transaction = await publicClient.getTransaction({ hash: registration.transactionHash });

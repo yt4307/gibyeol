@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { encodeFunctionData, parseAbi } from "viem";
 import type { InboxLetter } from "./inbox";
 
-const mocks = vi.hoisted(() => ({ getLogs: vi.fn(), getTransaction: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getBlockNumber: vi.fn(), getLogs: vi.fn(), getTransaction: vi.fn() }));
 
 vi.mock("@/infrastructure/blockchain/config", async () => {
   const { parseAbi } = await import("viem");
@@ -13,11 +13,11 @@ vi.mock("@/infrastructure/blockchain/config", async () => {
       "function registerMailboxKey(bytes32 publicKey, bytes passkeyEnvelope, bytes recoveryEnvelope)",
       "function sealLetter(bytes32 letterId, address recipient, uint32 recipientKeyId, bytes encryptedText, bytes sealedKey, bytes32 archiveSha256)",
     ]),
-    publicClient: { getLogs: mocks.getLogs, getTransaction: mocks.getTransaction },
+    publicClient: { getBlockNumber: mocks.getBlockNumber, getLogs: mocks.getLogs, getTransaction: mocks.getTransaction },
   };
 });
 
-import { loadLetterCalldata, loadMailboxEnvelopes } from "./onchain-inbox";
+import { loadInbox, loadLetterCalldata, loadMailboxEnvelopes } from "./onchain-inbox";
 
 const abi = parseAbi([
   "function registerMailboxKey(bytes32 publicKey, bytes passkeyEnvelope, bytes recoveryEnvelope)",
@@ -34,7 +34,21 @@ const letter: InboxLetter = {
 };
 
 describe("on-chain calldata recovery", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getBlockNumber.mockResolvedValue(1n);
+  });
+
+  it("loads inbox events over multiple RPC-safe block ranges", async () => {
+    mocks.getBlockNumber.mockResolvedValue(10_001n);
+    mocks.getLogs
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ transactionHash: letter.transactionHash, blockNumber: letter.blockNumber, args: letter }]);
+
+    await expect(loadInbox(letter.recipient)).resolves.toHaveLength(1);
+    expect(mocks.getLogs).toHaveBeenNthCalledWith(1, expect.objectContaining({ fromBlock: 1n, toBlock: 10_000n }));
+    expect(mocks.getLogs).toHaveBeenNthCalledWith(2, expect.objectContaining({ fromBlock: 10_001n, toBlock: 10_001n }));
+  });
 
   it("decodes letter ciphertext only when event fields match transaction calldata", async () => {
     const input = encodeFunctionData({
