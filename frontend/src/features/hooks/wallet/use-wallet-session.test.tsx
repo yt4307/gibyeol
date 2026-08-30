@@ -335,12 +335,29 @@ describe("useWalletSession", () => {
       if (method === "personal_sign") return "0xsignature";
       return null;
     });
-    walletConnectMocks.init.mockResolvedValue({
+    const walletConnectProvider: {
+      accounts: string[];
+      session?: { namespaces: Record<string, { methods: string[]; events: string[] }> };
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: typeof request;
+    } = {
+      accounts: [address],
       session: undefined,
-      connect: vi.fn().mockResolvedValue(undefined),
+      connect: vi.fn().mockImplementation(async () => {
+        walletConnectProvider.session = {
+          namespaces: {
+            eip155: {
+              methods: ["eth_sendTransaction", "personal_sign"],
+              events: ["accountsChanged", "chainChanged"],
+            },
+          },
+        };
+      }),
       disconnect: vi.fn().mockResolvedValue(undefined),
       request,
-    });
+    };
+    walletConnectMocks.init.mockResolvedValue(walletConnectProvider);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Sign in to Gibyeol" }) })
       .mockResolvedValueOnce({ ok: true });
@@ -351,6 +368,7 @@ describe("useWalletSession", () => {
     await act(async () => { await result.current.connect(); });
 
     expect(result.current.pendingSignatureAddress).toBe(address);
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "eth_requestAccounts" }));
     expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "personal_sign" }));
     expect(fetchMock).not.toHaveBeenCalled();
 

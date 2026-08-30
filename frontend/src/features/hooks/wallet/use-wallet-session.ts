@@ -259,10 +259,12 @@ export function useWalletSession() {
     setAccountSelectionAction(null);
     setPendingSignature(null);
     try {
-      const { connector, provider } = await connectWalletProvider(options);
-      const accounts = walletAddresses(await walletRequest<string[]>(provider, "지갑 계정 연결", {
-        method: "eth_requestAccounts",
-      }));
+      const { connector, provider, accounts: connectedAccounts } = await connectWalletProvider(options);
+      const accounts = walletAddresses(connectedAccounts?.length
+        ? connectedAccounts
+        : await walletRequest<string[]>(provider, "지갑 계정 연결", {
+          method: "eth_requestAccounts",
+        }));
       if (accounts.length === 0) throw new Error("연결된 계정이 없습니다.");
       if (accounts.length > 1) {
         setAvailableAccounts(accounts);

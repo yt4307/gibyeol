@@ -5,6 +5,7 @@ export type WalletConnector = "injected" | "walletconnect";
 export type ConnectedWalletProvider = {
   connector: WalletConnector;
   provider: BrowserProvider;
+  accounts?: readonly string[];
 };
 
 export type ConnectWalletProviderOptions = {
@@ -15,16 +16,21 @@ export type ConnectWalletProviderOptions = {
 type WalletConnectProvider = BrowserProvider & {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
+  accounts?: string[];
   session?: {
     namespaces: Record<string, { methods?: string[]; events?: string[] }>;
     peer?: { metadata?: { redirect?: { native?: string; universal?: string } } };
   };
 };
 
-const walletConnectMethods = [
-  "eth_requestAccounts",
+const walletConnectRequiredMethods = [
   "eth_sendTransaction",
   "personal_sign",
+] as const;
+
+const walletConnectOptionalMethods = [
+  "eth_accounts",
+  "eth_requestAccounts",
   "wallet_switchEthereumChain",
   "wallet_addEthereumChain",
 ] as const;
@@ -34,6 +40,15 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
 let activeWalletConnectProvider: WalletConnectProvider | undefined;
+
+function walletConnectSessionHasRequiredCapabilities(provider: WalletConnectProvider): boolean {
+  if (!provider.session) return false;
+  const namespaces = Object.values(provider.session.namespaces);
+  const approvedMethods = new Set(namespaces.flatMap((namespace) => namespace.methods ?? []));
+  const approvedEvents = new Set(namespaces.flatMap((namespace) => namespace.events ?? []));
+  return walletConnectRequiredMethods.every((method) => approvedMethods.has(method))
+    && walletConnectEvents.every((event) => approvedEvents.has(event));
+}
 
 export function isMobileBrowser(userAgent = navigator.userAgent): boolean {
   return /Android|iPhone|iPad|iPod/i.test(userAgent);
@@ -101,9 +116,10 @@ export async function connectWalletProvider(
   const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
   const provider = (await EthereumProvider.init({
     projectId,
-    optionalChains: [configuredChainId],
-    optionalMethods: [...walletConnectMethods],
-    optionalEvents: [...walletConnectEvents],
+    chains: [configuredChainId],
+    methods: [...walletConnectRequiredMethods],
+    events: [...walletConnectEvents],
+    optionalMethods: [...walletConnectOptionalMethods],
     rpcMap: {
       [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
     },
@@ -117,16 +133,9 @@ export async function connectWalletProvider(
     showQrModal: true,
   })) as WalletConnectProvider;
 
-  const approvedMethods = new Set(
-    Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.methods ?? []),
-  );
-  const approvedEvents = new Set(
-    Object.values(provider.session?.namespaces ?? {}).flatMap((namespace) => namespace.events ?? []),
-  );
   const staleSession = Boolean(provider.session) && (
     replaceSession
-    || walletConnectMethods.some((method) => !approvedMethods.has(method))
-    || walletConnectEvents.some((event) => !approvedEvents.has(event))
+    || !walletConnectSessionHasRequiredCapabilities(provider)
   );
   if (staleSession) {
     await provider.disconnect();
@@ -134,10 +143,16 @@ export async function connectWalletProvider(
   if (!provider.session) {
     await provider.connect();
   }
+  if (!walletConnectSessionHasRequiredCapabilities(provider)) {
+    await provider.disconnect().catch(() => undefined);
+    throw new Error(
+      "연결된 지갑이 로그인 서명 권한을 승인하지 않았습니다. MetaMask에서 연결을 다시 승인해 주세요.",
+    );
+  }
   activeProvider = provider;
   activeConnector = "walletconnect";
   activeWalletConnectProvider = provider;
-  return { connector: "walletconnect", provider };
+  return { connector: "walletconnect", provider, accounts: provider.accounts };
 }
 
 export function clearActiveWalletProvider(): void {
