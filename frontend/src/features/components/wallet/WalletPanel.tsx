@@ -104,7 +104,8 @@ export function WalletPanel({
       {!address && !restoring && <HelpText>{pendingSignatureAddress
         ? "연결이 완료되었습니다. 지갑에서 서명을 승인한 뒤 브라우저의 기별 탭으로 직접 돌아와 주세요."
         : "모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요."}</HelpText>}
-      {error && <ErrorText role="alert">{error}</ErrorText>}
+      {(busy || restoring) && <StatusText role="status" aria-live="polite">{restoring ? "저장된 로그인 상태를 확인하고 있어요." : pendingAction === "logout" ? "로그인 정보를 정리하고 있어요." : pendingAction === "change" || pendingAction === "account" ? "새로 연결할 계정을 확인하고 있어요." : walletProgress === "signature" ? "지갑에서 서명 승인을 기다리고 있어요." : walletProgress === "verify" ? "서명한 지갑을 확인하고 있어요." : "지갑 연결을 준비하고 있어요."}</StatusText>}
+      {error && <ErrorArea><ErrorText role="alert">{error}</ErrorText>{!address && <RetryButton type="button" onClick={pendingSignatureAddress ? onContinueSignature : onConnect} disabled={busy || restoring}>다시 시도</RetryButton>}</ErrorArea>}
     </Panel>
   );
 }
@@ -129,4 +130,7 @@ const AccountButton = styled.button`display:grid;grid-template-columns:auto 1fr 
 const AccountIndex = styled.span`font-size:10px;letter-spacing:.12em;color:var(--color-accent-primary);`;
 const AccountAction = styled.span`font-size:var(--font-size-100);color:var(--color-text-muted);`;
 const HelpText = styled.p`grid-column: 1 / -1; color: var(--color-text-muted); font-size: var(--font-size-100);`;
+const StatusText = styled.p`grid-column:1/-1;color:var(--color-accent-primary);font-size:var(--font-size-100);`;
+const ErrorArea = styled.div`grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);`;
 const ErrorText = styled.p`grid-column: 1 / -1; color: var(--color-status-error); font-size: var(--font-size-100);`;
+const RetryButton = styled.button`flex:0 0 auto;min-height:36px;padding:0 var(--space-3);border:1px solid var(--color-status-error);border-radius:3px;color:var(--color-text-primary);background:transparent;cursor:pointer;&:disabled{opacity:.55;cursor:default;}`;

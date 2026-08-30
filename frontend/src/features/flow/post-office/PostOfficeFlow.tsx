@@ -22,6 +22,12 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
   const mailbox = useMailboxOnboarding(authenticatedAddress);
   const email = useEmailRegistration(authenticatedAddress);
   const mailboxReady = Boolean(mailbox.keyId && mailbox.keyId > 0 && mailbox.active);
+  const onboardingSteps = [
+    { label: "지갑 확인", complete: Boolean(authenticatedAddress), active: !authenticatedAddress },
+    { label: "받을 준비", complete: mailboxReady, active: Boolean(authenticatedAddress) && !mailboxReady },
+    { label: "도착 안내", complete: Boolean(email.verified), active: mailboxReady && !email.verified },
+  ];
+  const completedSteps = onboardingSteps.filter(({ complete }) => complete).length;
   return <Shell>
     <Top><Link href="/"><BrandWordmark /></Link><DateMark>크리스마스 우체국 · 2026</DateMark></Top>
     <Intro>
@@ -33,6 +39,15 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
       <p>지갑으로 본인을 확인하고, 패스키로 받을 준비를 한 뒤 기별을 안전하게 봉인해 보세요.</p>
     </Intro>
     <Workspace>
+      <Journey aria-label="기별 이용 준비 단계">
+        <JourneyHeader><span>기별을 받을 준비</span><strong>{completedSteps} / 3</strong></JourneyHeader>
+        <JourneyList>
+          {onboardingSteps.map((step, index) => <JourneyStep key={step.label} data-complete={step.complete || undefined} data-active={step.active || undefined} aria-current={step.active ? "step" : undefined}>
+            <Seal aria-hidden="true" data-complete={step.complete || undefined} data-active={step.active || undefined}>{step.complete ? "✦" : index + 1}</Seal>
+            <span>{step.label}</span>
+          </JourneyStep>)}
+        </JourneyList>
+      </Journey>
       <WalletPanel
         address={wallet.session?.address}
         availableAccounts={wallet.availableAccounts}
@@ -81,5 +96,10 @@ const IntroTitle = styled.h1`
 `;
 const IntroTitlePhrase = styled.span`white-space:nowrap;`;
 const Workspace = styled.div`position:relative;z-index:1;display:grid;gap:var(--space-5);width:min(100%,900px);margin:0 auto;`;
+const Journey = styled.nav`padding:var(--space-5);border:1px solid var(--color-border);border-radius:4px;background:rgb(11 19 32 / 72%);box-shadow:var(--shadow-surface);backdrop-filter:blur(18px);`;
+const JourneyHeader = styled.div`display:flex;justify-content:space-between;gap:var(--space-4);font-size:var(--font-size-100);color:var(--color-text-muted);strong{color:var(--color-accent-primary);font-variant-numeric:tabular-nums;}`;
+const JourneyList = styled.ol`position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin-top:var(--space-4);list-style:none;&::before{position:absolute;top:17px;right:16.666%;left:16.666%;height:1px;background:var(--color-border);content:"";}@media(max-width:480px){gap:0;}`;
+const JourneyStep = styled.li`position:relative;display:grid;justify-items:center;gap:var(--space-2);color:var(--color-text-muted);font-size:12px;text-align:center;&[data-active]{color:var(--color-text-primary);}&[data-complete]{color:var(--color-accent-primary);}`;
+const Seal = styled.span`position:relative;z-index:1;display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--color-border-strong);border-radius:48% 52% 46% 54%;background:var(--color-identity-midnight-navy);color:var(--color-text-muted);font-family:var(--font-family-display);font-size:13px;&[data-active]{border-color:var(--color-accent-primary);box-shadow:0 0 0 4px rgb(217 199 163 / 8%);color:var(--color-accent-primary);}&[data-complete]{border-color:var(--color-accent-primary);background:var(--color-accent-primary);color:var(--color-identity-midnight-navy);}`;
 const Tabs = styled.nav`display:flex;gap:2px;padding:3px;background:rgb(245 246 250 / 4%);border:1px solid var(--color-border);border-radius:4px;a{display:flex;flex:1;align-items:center;justify-content:center;min-height:44px;color:var(--color-text-muted);border-radius:2px;background:transparent;transition:color 160ms ease,background 160ms ease;&.active{color:var(--color-identity-midnight-navy);background:var(--color-accent-primary);font-weight:600;}}`;
 const Hint = styled.p`padding:var(--space-8);text-align:center;color:var(--color-text-muted);background:rgb(18 28 46 / 72%);border:1px dashed var(--color-border-strong);border-radius:4px;`;

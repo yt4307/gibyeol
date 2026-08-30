@@ -73,6 +73,7 @@ describe("PostOfficeFlow integration", () => {
     render(<PostOfficeFlow />);
 
     expect(screen.getByRole("button", { name: "지갑 연결" })).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "기별 이용 준비 단계" }).textContent).toContain("0 / 3");
     expect(screen.getByText("모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.")).toBeTruthy();
     expect(screen.queryByText("패스키 메일박스")).toBeNull();
     expect(screen.queryByText("도착 안내 이메일")).toBeNull();
@@ -115,6 +116,8 @@ describe("PostOfficeFlow integration", () => {
     const first = render(<PostOfficeFlow />);
 
     fireEvent.click(screen.getByRole("button", { name: "메일박스 비활성화" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "비활성화" }));
     expect(mocks.deactivateMailbox).toHaveBeenCalledOnce();
 
     first.unmount();
@@ -148,6 +151,7 @@ describe("PostOfficeFlow integration", () => {
     render(<PostOfficeFlow view="inbox" />);
 
     expect(screen.getByRole("button", { name: "계정 변경" })).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "기별 이용 준비 단계" }).textContent).toContain("3 / 3");
     expect(screen.getByRole("button", { name: "다른 지갑" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "받은 기별" }).getAttribute("aria-current")).toBe("page");
