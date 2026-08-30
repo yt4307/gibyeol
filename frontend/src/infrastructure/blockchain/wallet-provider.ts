@@ -24,11 +24,6 @@ type WalletConnectProvider = BrowserProvider & {
       methods?: string[];
       events?: string[];
     }>;
-    requiredNamespaces?: Record<string, {
-      chains?: string[];
-      methods?: string[];
-      events?: string[];
-    }>;
   };
 };
 
@@ -55,22 +50,17 @@ function walletConnectSessionHasRequiredCapabilities(
 ): boolean {
   if (!provider.session) return false;
   const requiredChain = `eip155:${configuredChainId}`;
-  const requiredNamespaces = Object.values(provider.session.requiredNamespaces ?? {});
-  const requestedChains = new Set(requiredNamespaces.flatMap((namespace) => namespace.chains ?? []));
-  const requestedMethods = new Set(requiredNamespaces.flatMap((namespace) => namespace.methods ?? []));
-  const requestedEvents = new Set(requiredNamespaces.flatMap((namespace) => namespace.events ?? []));
-  const namespaces = Object.values(provider.session.namespaces);
+  const namespaceEntries = Object.entries(provider.session.namespaces);
+  const namespaces = namespaceEntries.map(([, namespace]) => namespace);
   const approvedMethods = new Set(namespaces.flatMap((namespace) => namespace.methods ?? []));
   const approvedEvents = new Set(namespaces.flatMap((namespace) => namespace.events ?? []));
-  const approvedChains = new Set(namespaces.flatMap((namespace) => [
+  const approvedChains = new Set(namespaceEntries.flatMap(([namespaceKey, namespace]) => [
+    ...(/^eip155:\d+$/.test(namespaceKey) ? [namespaceKey] : []),
     ...(namespace.chains ?? []),
     ...(namespace.accounts ?? []).map((account) => account.split(":").slice(0, 2).join(":")),
   ]));
-  return requestedChains.has(requiredChain)
-    && approvedChains.has(requiredChain)
-    && walletConnectRequiredMethods.every((method) => requestedMethods.has(method))
+  return approvedChains.has(requiredChain)
     && walletConnectRequiredMethods.every((method) => approvedMethods.has(method))
-    && walletConnectEvents.every((event) => requestedEvents.has(event))
     && walletConnectEvents.every((event) => approvedEvents.has(event));
 }
 
@@ -123,6 +113,7 @@ export async function connectWalletProvider(
   const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
   const provider = (await EthereumProvider.init({
     projectId,
+    customStoragePrefix: "gibyeol-wallet-v2",
     chains: [configuredChainId],
     methods: [...walletConnectRequiredMethods],
     events: [...walletConnectEvents],

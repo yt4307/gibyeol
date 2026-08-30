@@ -116,6 +116,7 @@ describe("wallet provider selection", () => {
 
     expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({
       projectId: "project-id",
+      customStoragePrefix: "gibyeol-wallet-v2",
       chains: [84532],
       methods: ["eth_sendTransaction", "personal_sign"],
       events: ["accountsChanged", "chainChanged"],
@@ -289,30 +290,27 @@ describe("wallet provider selection", () => {
     expect(activeWalletConnector()).toBeUndefined();
   });
 
-  it("replaces a legacy optional-only session even when it lists signing methods", async () => {
+  it("accepts MetaMask chain-scoped namespaces after required permissions are approved", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
-    const provider: {
-      session?: ReturnType<typeof approvedSession> | {
-        namespaces: ReturnType<typeof approvedSession>["namespaces"];
-        requiredNamespaces: Record<string, never>;
-      };
-      connect: ReturnType<typeof vi.fn>;
-      disconnect: ReturnType<typeof vi.fn>;
-      request: ReturnType<typeof vi.fn>;
-    } = {
+    const provider = {
       session: {
-        requiredNamespaces: {},
-        namespaces: approvedSession().namespaces,
+        namespaces: {
+          "eip155:84532": {
+            accounts: ["eip155:84532:0x1111111111111111111111111111111111111111"],
+            methods: ["eth_sendTransaction", "personal_sign"],
+            events: ["accountsChanged", "chainChanged"],
+          },
+        },
       },
-      connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
-      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
       request: vi.fn(),
     };
     mocks.init.mockResolvedValue(provider);
 
     await connectWalletProvider();
 
-    expect(provider.disconnect).toHaveBeenCalledOnce();
-    expect(provider.connect).toHaveBeenCalledOnce();
+    expect(provider.disconnect).not.toHaveBeenCalled();
+    expect(provider.connect).not.toHaveBeenCalled();
   });
 });
