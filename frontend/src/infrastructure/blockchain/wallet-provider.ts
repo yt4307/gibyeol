@@ -137,6 +137,7 @@ export async function connectWalletProvider(
         description: "미래로 보내는 암호 편지",
         url: origin,
         icons: [],
+        redirect: { universal: origin },
       },
       showQrModal: true,
     })) as WalletConnectProvider;
@@ -171,6 +172,14 @@ export async function disconnectActiveWalletProvider(): Promise<void> {
   activeWalletConnectProvider = undefined;
   if (provider?.session) {
     await provider.disconnect().catch(() => undefined);
+  }
+}
+
+export async function disconnectActiveWalletSession(): Promise<void> {
+  activeProvider = undefined;
+  activeConnector = undefined;
+  if (activeWalletConnectProvider?.session) {
+    await activeWalletConnectProvider.disconnect().catch(() => undefined);
   }
 }
 

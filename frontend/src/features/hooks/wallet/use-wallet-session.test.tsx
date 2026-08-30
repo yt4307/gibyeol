@@ -472,7 +472,7 @@ describe("useWalletSession", () => {
     expect(result.current.authenticated).toBe(true);
   });
 
-  it("keeps the WalletConnect session available after logout and signs in again", async () => {
+  it("reuses the WalletConnect client with a fresh session after logout", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
     const request = vi.fn(async ({ method }: { method: string }) => {
@@ -527,8 +527,8 @@ describe("useWalletSession", () => {
     await act(async () => { await result.current.continueAuthentication(); });
 
     expect(walletConnectMocks.init).toHaveBeenCalledOnce();
-    expect(walletConnectProvider.disconnect).not.toHaveBeenCalled();
-    expect(walletConnectProvider.connect).toHaveBeenCalledOnce();
+    expect(walletConnectProvider.disconnect).toHaveBeenCalledOnce();
+    expect(walletConnectProvider.connect).toHaveBeenCalledTimes(2);
     expect(request.mock.calls.filter(([args]) => args.method === "personal_sign")).toHaveLength(2);
     expect(result.current.authenticated).toBe(true);
   });

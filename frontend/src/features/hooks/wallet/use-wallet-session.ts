@@ -13,6 +13,7 @@ import {
   activeWalletProvider,
   connectWalletProvider,
   connectedWalletProvider,
+  disconnectActiveWalletSession,
   injectedWalletProvider,
   isMobileBrowser,
 } from "@/infrastructure/blockchain/wallet-provider";
@@ -386,6 +387,7 @@ export function useWalletSession() {
     } catch (cause) {
       setError(userFacingErrorMessage(cause, "서버 로그아웃 요청에 실패했습니다."));
     } finally {
+      await disconnectActiveWalletSession();
       setSession(null);
       setAuthenticationStatus("anonymous");
       setWalletAccountMismatch(false);

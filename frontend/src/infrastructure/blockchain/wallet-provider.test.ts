@@ -38,6 +38,7 @@ import {
   clearActiveWalletProvider,
   connectWalletProvider,
   connectedWalletProvider,
+  disconnectActiveWalletSession,
   isMobileBrowser,
 } from "./wallet-provider";
 
@@ -137,7 +138,33 @@ describe("wallet provider selection", () => {
     expect(connected).toEqual({ connector: "walletconnect", provider, accounts: undefined });
     expect(activeWalletProvider()).toBe(provider);
     expect(activeWalletConnector()).toBe("walletconnect");
-    expect(mocks.init.mock.calls[0]?.[0]?.metadata).not.toHaveProperty("redirect");
+    expect(mocks.init.mock.calls[0]?.[0]?.metadata).toEqual(expect.objectContaining({
+      redirect: { universal: "https://www.gibyeol.kro.kr" },
+    }));
+  });
+
+  it("disconnects a WalletConnect session while retaining its SDK instance", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider: {
+      session?: ReturnType<typeof approvedSession>;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      request: ReturnType<typeof vi.fn>;
+    } = {
+      session: undefined,
+      connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
+      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider();
+    await disconnectActiveWalletSession();
+    await connectWalletProvider();
+
+    expect(mocks.init).toHaveBeenCalledOnce();
+    expect(provider.disconnect).toHaveBeenCalledOnce();
+    expect(provider.connect).toHaveBeenCalledTimes(2);
   });
 
   it("detects mobile browsers while retaining an approved WalletConnect session", async () => {
