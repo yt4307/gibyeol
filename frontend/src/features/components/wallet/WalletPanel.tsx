@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import type { WalletPendingAction } from "@features/hooks/wallet/use-wallet-session";
+import type { WalletPendingAction, WalletProgress } from "@features/hooks/wallet/use-wallet-session";
 
 export type WalletPanelProps = {
   address?: string;
@@ -9,6 +9,7 @@ export type WalletPanelProps = {
   pendingSignatureAddress?: string;
   busy?: boolean;
   pendingAction?: WalletPendingAction;
+  walletProgress?: WalletProgress;
   restoring?: boolean;
   error?: string | null;
   onConnect: () => void;
@@ -30,6 +31,7 @@ export function WalletPanel({
   pendingSignatureAddress,
   busy = false,
   pendingAction = null,
+  walletProgress = null,
   restoring = false,
   error,
   onConnect,
@@ -64,7 +66,11 @@ export function WalletPanel({
           </Button>
         </> : pendingSignatureAddress
           ? <Button type="button" onClick={onContinueSignature} disabled={busy || restoring}>
-            {busy ? "서명 요청 전송 중…" : "지갑에서 서명하기"}
+            {busy
+              ? walletProgress === "signature" ? "지갑에서 서명 승인 대기 중…"
+                : walletProgress === "verify" ? "로그인 확인 중…"
+                  : "서명 요청 준비 중…"
+              : "지갑에서 서명하기"}
           </Button>
           : <Button type="button" onClick={onConnect} disabled={busy || restoring || selectingAccount}>
             {restoring

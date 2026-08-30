@@ -222,27 +222,37 @@ describe("wallet provider selection", () => {
     expect(provider.connect).toHaveBeenCalledOnce();
   });
 
-  it("reuses one WalletConnect provider while replacing its approved session", async () => {
+  it("disconnects the active WalletConnect provider before creating its replacement", async () => {
     vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
-    const provider: {
+    const firstProvider: {
       session?: ReturnType<typeof approvedSession>;
       connect: ReturnType<typeof vi.fn>;
       disconnect: ReturnType<typeof vi.fn>;
       request: ReturnType<typeof vi.fn>;
     } = {
       session: undefined,
-      connect: vi.fn().mockImplementation(async () => { provider.session = approvedSession(); }),
-      disconnect: vi.fn().mockImplementation(async () => { provider.session = undefined; }),
+      connect: vi.fn().mockImplementation(async () => { firstProvider.session = approvedSession(); }),
+      disconnect: vi.fn().mockImplementation(async () => { firstProvider.session = undefined; }),
       request: vi.fn(),
     };
-    mocks.init.mockResolvedValue(provider);
+    const replacementProvider: typeof firstProvider = {
+      session: undefined,
+      connect: vi.fn().mockImplementation(async () => { replacementProvider.session = approvedSession(); }),
+      disconnect: vi.fn().mockImplementation(async () => { replacementProvider.session = undefined; }),
+      request: vi.fn(),
+    };
+    mocks.init
+      .mockResolvedValueOnce(firstProvider)
+      .mockResolvedValueOnce(replacementProvider);
 
     await connectWalletProvider();
-    await connectWalletProvider({ replaceSession: true });
+    const replaced = await connectWalletProvider({ replaceSession: true });
 
-    expect(mocks.init).toHaveBeenCalledOnce();
-    expect(provider.disconnect).toHaveBeenCalledOnce();
-    expect(provider.connect).toHaveBeenCalledTimes(2);
+    expect(mocks.init).toHaveBeenCalledTimes(2);
+    expect(firstProvider.disconnect).toHaveBeenCalledOnce();
+    expect(firstProvider.connect).toHaveBeenCalledOnce();
+    expect(replacementProvider.connect).toHaveBeenCalledOnce();
+    expect(replaced.provider).toBe(replacementProvider);
   });
 
   it("rejects a newly connected session that did not approve personal signing", async () => {

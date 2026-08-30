@@ -113,6 +113,10 @@ export async function connectWalletProvider(
     throw new Error("모바일 지갑 연결 설정이 완료되지 않았습니다.");
   }
 
+  if (replaceSession && activeWalletConnectProvider) {
+    await disconnectActiveWalletProvider();
+  }
+
   const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;
   const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
   let provider = activeWalletConnectProvider;

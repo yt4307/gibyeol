@@ -24,6 +24,7 @@ import { useAppStore } from "@/stores/use-app-store";
 
 type SessionResponse = { walletAddress: `0x${string}` };
 export type WalletPendingAction = "connect" | "account" | "change" | "logout" | null;
+export type WalletProgress = "network" | "challenge" | "signature" | "verify" | null;
 
 type AuthenticationAction = Exclude<WalletPendingAction, "logout" | null>;
 type PendingWalletSignature = { address: `0x${string}`; action: AuthenticationAction };
@@ -83,6 +84,7 @@ export function useWalletSession() {
   const setAuthenticationStatus = useAppStore((state) => state.setAuthenticationStatus);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<WalletPendingAction>(null);
+  const [walletProgress, setWalletProgress] = useState<WalletProgress>(null);
   const [availableAccounts, setAvailableAccounts] = useState<`0x${string}`[]>([]);
   const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
   const [walletAccountMismatch, setWalletAccountMismatch] = useState(false);
@@ -184,6 +186,7 @@ export function useWalletSession() {
     provider: NonNullable<ReturnType<typeof activeWalletProvider>>,
     address: `0x${string}`,
   ) => {
+      setWalletProgress("network");
       const actualChain = Number(await walletRequest<string>(provider, "네트워크 확인", {
         method: "eth_chainId",
       }));
@@ -212,6 +215,7 @@ export function useWalletSession() {
           });
         }
       }
+      setWalletProgress("challenge");
       const challengeResponse = await fetch(`${apiBaseUrl}/auth/challenge`, {
         method: "POST",
         credentials: "include",
@@ -222,10 +226,12 @@ export function useWalletSession() {
         throw await apiResponseError(challengeResponse, "로그인 요청 생성 단계 실패");
       }
       const challenge = (await challengeResponse.json()) as { message: string };
+      setWalletProgress("signature");
       const signature = await walletRequest<string>(provider, "지갑 서명", {
         method: "personal_sign",
         params: [challenge.message, address],
       });
+      setWalletProgress("verify");
       const verifyResponse = await fetch(`${apiBaseUrl}/auth/verify`, {
         method: "POST",
         credentials: "include",
@@ -275,6 +281,7 @@ export function useWalletSession() {
       setError(message);
       throw cause;
     } finally {
+      setWalletProgress(null);
       setPendingAction(null);
     }
   }, [authenticateAddress]);
@@ -300,6 +307,7 @@ export function useWalletSession() {
         : userFacingErrorMessage(cause, "지갑 서명을 완료하지 못했습니다. 다시 시도해 주세요."));
       throw cause;
     } finally {
+      setWalletProgress(null);
       setPendingAction(null);
     }
   }, [authenticateAddress, pendingSignature]);
@@ -357,6 +365,7 @@ export function useWalletSession() {
       setError(userFacingErrorMessage(cause, "선택한 계정으로 로그인하지 못했습니다."));
       throw cause;
     } finally {
+      setWalletProgress(null);
       setPendingAction(null);
     }
   }, [accountSelectionAction, authenticateAddress, availableAccounts]);
@@ -385,6 +394,7 @@ export function useWalletSession() {
       setWalletAccountMismatch(false);
       setPendingSignature(null);
       await disconnectActiveWalletProvider();
+      setWalletProgress(null);
       setPendingAction(null);
     }
   }, [setAuthenticationStatus, setSession]);
@@ -394,6 +404,7 @@ export function useWalletSession() {
     error,
     busy: pendingAction !== null,
     pendingAction,
+    walletProgress,
     availableAccounts,
     pendingSignatureAddress: pendingSignature?.address,
     restoring: authenticationStatus === "restoring",

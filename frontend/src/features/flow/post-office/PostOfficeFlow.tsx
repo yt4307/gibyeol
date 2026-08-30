@@ -39,6 +39,7 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
         pendingSignatureAddress={wallet.pendingSignatureAddress}
         busy={wallet.busy}
         pendingAction={wallet.pendingAction}
+        walletProgress={wallet.walletProgress}
         restoring={wallet.restoring}
         error={wallet.error}
         onConnect={() => { void wallet.connect().catch(() => undefined); }}
