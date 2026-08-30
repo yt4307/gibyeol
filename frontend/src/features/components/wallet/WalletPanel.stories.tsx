@@ -6,6 +6,7 @@ const meta = {
   component: WalletPanel,
   args: {
     onConnect: () => undefined,
+    onContinueSignature: () => undefined,
     onSelectAccount: () => undefined,
     onCancelAccountSelection: () => undefined,
     onChangeAccount: () => undefined,
@@ -17,6 +18,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Disconnected: Story = {};
 export const Connected: Story = { args: { address: "0x1234567890abcdef1234567890abcdef12345678" } };
+export const AwaitingMobileSignature: Story = { args: { pendingSignatureAddress: "0x1234567890abcdef1234567890abcdef12345678" } };
 export const AccountSelection: Story = {
   args: {
     availableAccounts: [

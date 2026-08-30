@@ -4,6 +4,14 @@ const mocks = vi.hoisted(() => ({
   init: vi.fn(),
 }));
 
+const walletConnectMethodsForTest = [
+  "eth_requestAccounts",
+  "eth_sendTransaction",
+  "personal_sign",
+  "wallet_switchEthereumChain",
+  "wallet_addEthereumChain",
+];
+
 vi.mock("@walletconnect/ethereum-provider", () => ({
   EthereumProvider: { init: mocks.init },
 }));
@@ -14,7 +22,9 @@ import {
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
+  connectedWalletRedirectUrl,
   connectedWalletProvider,
+  isMobileBrowser,
 } from "./wallet-provider";
 
 function setInjectedProvider(provider?: BrowserProvider) {
@@ -107,6 +117,26 @@ describe("wallet provider selection", () => {
     expect(connected).toEqual({ connector: "walletconnect", provider });
     expect(activeWalletProvider()).toBe(provider);
     expect(activeWalletConnector()).toBe("walletconnect");
+  });
+
+  it("detects mobile browsers and exposes the connected wallet return link", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider = {
+      session: {
+        namespaces: { eip155: { methods: [...walletConnectMethodsForTest], events: ["accountsChanged", "chainChanged"] } },
+        peer: { metadata: { redirect: { native: "metamask://" } } },
+      },
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await connectWalletProvider();
+
+    expect(isMobileBrowser("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile")).toBe(true);
+    expect(isMobileBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/152")).toBe(false);
+    expect(connectedWalletRedirectUrl()).toBe("metamask://");
   });
 
   it("opens WalletConnect when another wallet is explicitly requested", async () => {

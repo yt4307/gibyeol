@@ -36,11 +36,13 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
       <WalletPanel
         address={wallet.session?.address}
         availableAccounts={wallet.availableAccounts}
+        pendingSignatureAddress={wallet.pendingSignatureAddress}
         busy={wallet.busy}
         pendingAction={wallet.pendingAction}
         restoring={wallet.restoring}
         error={wallet.error}
         onConnect={() => { void wallet.connect().catch(() => undefined); }}
+        onContinueSignature={() => { void wallet.continueAuthentication().catch(() => undefined); }}
         onSelectAccount={(address) => { void wallet.selectAccount(address).catch(() => undefined); }}
         onCancelAccountSelection={wallet.cancelAccountSelection}
         onChangeAccount={() => { void wallet.changeAccount().catch(() => undefined); }}

@@ -17,6 +17,7 @@ type WalletConnectProvider = BrowserProvider & {
   disconnect(): Promise<void>;
   session?: {
     namespaces: Record<string, { methods?: string[]; events?: string[] }>;
+    peer?: { metadata?: { redirect?: { native?: string; universal?: string } } };
   };
 };
 
@@ -32,6 +33,27 @@ const walletConnectEvents = ["accountsChanged", "chainChanged"] as const;
 
 let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
+let activeWalletConnectProvider: WalletConnectProvider | undefined;
+
+export function isMobileBrowser(userAgent = navigator.userAgent): boolean {
+  return /Android|iPhone|iPad|iPod/i.test(userAgent);
+}
+
+export function connectedWalletRedirectUrl(): string | undefined {
+  const redirect = activeWalletConnectProvider?.session?.peer?.metadata?.redirect;
+  const value = redirect?.native ?? redirect?.universal;
+  if (!value || !/^(?:https:|[a-z][a-z0-9+.-]*:)/i.test(value) || /^(?:javascript|data):/i.test(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+export function openConnectedWallet(): boolean {
+  const redirect = connectedWalletRedirectUrl();
+  if (!redirect) return false;
+  window.location.assign(redirect);
+  return true;
+}
 
 export function injectedWalletProvider(): BrowserProvider | undefined {
   return (window as typeof window & { ethereum?: BrowserProvider }).ethereum;
@@ -65,6 +87,7 @@ export async function connectWalletProvider(
     }
     activeProvider = injected;
     activeConnector = "injected";
+    activeWalletConnectProvider = undefined;
     return { connector: "injected", provider: injected };
   }
 
@@ -89,6 +112,7 @@ export async function connectWalletProvider(
       description: "미래로 보내는 암호 편지",
       url: origin,
       icons: [],
+      redirect: { universal: origin },
     },
     showQrModal: true,
   })) as WalletConnectProvider;
@@ -112,10 +136,12 @@ export async function connectWalletProvider(
   }
   activeProvider = provider;
   activeConnector = "walletconnect";
+  activeWalletConnectProvider = provider;
   return { connector: "walletconnect", provider };
 }
 
 export function clearActiveWalletProvider(): void {
   activeProvider = undefined;
   activeConnector = undefined;
+  activeWalletConnectProvider = undefined;
 }

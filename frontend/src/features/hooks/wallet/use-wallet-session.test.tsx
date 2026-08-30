@@ -8,6 +8,12 @@ import {
 import { useAppStore } from "@/stores/use-app-store";
 import { useWalletSession } from "./use-wallet-session";
 
+const walletConnectMocks = vi.hoisted(() => ({ init: vi.fn() }));
+
+vi.mock("@walletconnect/ethereum-provider", () => ({
+  EthereumProvider: { init: walletConnectMocks.init },
+}));
+
 const address = "0x1111111111111111111111111111111111111111" as const;
 const secondAddress = "0x2222222222222222222222222222222222222222" as const;
 
@@ -20,6 +26,7 @@ function cacheWalletSession(cachedAddress: `0x${string}` = address) {
 
 describe("useWalletSession", () => {
   beforeEach(() => {
+    walletConnectMocks.init.mockReset();
     window.localStorage.clear();
     clearActiveWalletProvider();
     delete (window as typeof window & { ethereum?: unknown }).ethereum;
@@ -28,6 +35,8 @@ describe("useWalletSession", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("restores the persisted wallet after the server validates its cookie", async () => {
@@ -315,6 +324,41 @@ describe("useWalletSession", () => {
       method: "personal_sign",
       params: ["Sign in to Gibyeol", secondAddress],
     });
+  });
+
+  it("waits for a second user gesture before requesting a mobile WalletConnect signature", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile");
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_requestAccounts") return [address];
+      if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
+      if (method === "personal_sign") return "0xsignature";
+      return null;
+    });
+    walletConnectMocks.init.mockResolvedValue({
+      session: undefined,
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      request,
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Sign in to Gibyeol" }) })
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useWalletSession());
+    await waitFor(() => expect(result.current.restoring).toBe(false));
+    await act(async () => { await result.current.connect(); });
+
+    expect(result.current.pendingSignatureAddress).toBe(address);
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "personal_sign" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => { await result.current.continueAuthentication(); });
+
+    expect(request).toHaveBeenCalledWith({ method: "personal_sign", params: ["Sign in to Gibyeol", address] });
+    expect(result.current.authenticated).toBe(true);
+    expect(result.current.pendingSignatureAddress).toBeUndefined();
   });
 
   it("asks an injected wallet to approve accounts again when changing accounts", async () => {

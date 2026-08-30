@@ -6,11 +6,13 @@ import type { WalletPendingAction } from "@features/hooks/wallet/use-wallet-sess
 export type WalletPanelProps = {
   address?: string;
   availableAccounts?: readonly string[];
+  pendingSignatureAddress?: string;
   busy?: boolean;
   pendingAction?: WalletPendingAction;
   restoring?: boolean;
   error?: string | null;
   onConnect: () => void;
+  onContinueSignature: () => void;
   onSelectAccount: (address: string) => void;
   onCancelAccountSelection: () => void;
   onChangeAccount: () => void;
@@ -25,11 +27,13 @@ function shortAddress(address: string): string {
 export function WalletPanel({
   address,
   availableAccounts = [],
+  pendingSignatureAddress,
   busy = false,
   pendingAction = null,
   restoring = false,
   error,
   onConnect,
+  onContinueSignature,
   onSelectAccount,
   onCancelAccountSelection,
   onChangeAccount,
@@ -44,6 +48,7 @@ export function WalletPanel({
         <Label>WALLET &amp; SIWE</Label>
         <Value>{address
           ? shortAddress(address)
+          : pendingSignatureAddress ? `연결한 지갑 ${shortAddress(pendingSignatureAddress)}`
           : restoring ? "로그인 상태를 불러오는 중이에요" : "지갑 연결이 필요해요"}</Value>
       </div>
       <Actions>
@@ -57,11 +62,15 @@ export function WalletPanel({
           <Button type="button" onClick={onChangeAccount} disabled={busy || restoring}>
             {pendingAction === "account" ? "계정 확인 중…" : "계정 변경"}
           </Button>
-        </> : <Button type="button" onClick={onConnect} disabled={busy || restoring || selectingAccount}>
-          {restoring
-            ? "세션 확인 중…"
-            : pendingAction === "connect" ? "서명 확인 중…" : "지갑 연결"}
-        </Button>}
+        </> : pendingSignatureAddress
+          ? <Button type="button" onClick={onContinueSignature} disabled={busy || restoring}>
+            {busy ? "서명 요청 전송 중…" : "지갑에서 서명하기"}
+          </Button>
+          : <Button type="button" onClick={onConnect} disabled={busy || restoring || selectingAccount}>
+            {restoring
+              ? "세션 확인 중…"
+              : pendingAction === "connect" ? "지갑 연결 중…" : "지갑 연결"}
+          </Button>}
       </Actions>
       {selectingAccount && <AccountChooser aria-labelledby="wallet-account-title">
         <AccountChooserHeader>
@@ -86,7 +95,9 @@ export function WalletPanel({
           </li>)}
         </AccountList>
       </AccountChooser>}
-      {!address && !restoring && <HelpText>모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요.</HelpText>}
+      {!address && !restoring && <HelpText>{pendingSignatureAddress
+        ? "연결이 완료되었습니다. 버튼을 누른 뒤 지갑 앱에서 로그인 서명을 승인해 주세요."
+        : "모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요."}</HelpText>}
       {error && <ErrorText role="alert">{error}</ErrorText>}
     </Panel>
   );

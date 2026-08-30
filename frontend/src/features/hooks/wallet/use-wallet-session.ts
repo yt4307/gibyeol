@@ -15,6 +15,8 @@ import {
   connectWalletProvider,
   connectedWalletProvider,
   injectedWalletProvider,
+  isMobileBrowser,
+  openConnectedWallet,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
@@ -24,6 +26,7 @@ type SessionResponse = { walletAddress: `0x${string}` };
 export type WalletPendingAction = "connect" | "account" | "change" | "logout" | null;
 
 type AuthenticationAction = Exclude<WalletPendingAction, "logout" | null>;
+type PendingWalletSignature = { address: `0x${string}`; action: AuthenticationAction };
 
 function walletAddresses(value: unknown): `0x${string}`[] {
   if (!Array.isArray(value)) return [];
@@ -58,7 +61,13 @@ async function walletRequest<T>(
   args: { method: string; params?: readonly unknown[] | object },
 ): Promise<T> {
   try {
-    return await provider.request(args) as T;
+    const response = provider.request(args) as Promise<T>;
+    if (activeWalletConnector() === "walletconnect"
+      && isMobileBrowser()
+      && ["personal_sign", "wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(args.method)) {
+      openConnectedWallet();
+    }
+    return await response;
   } catch (cause) {
     throw new WalletRequestError(
       `${stage} 단계에서 요청을 처리하지 못했습니다.`,
@@ -83,6 +92,7 @@ export function useWalletSession() {
   const [availableAccounts, setAvailableAccounts] = useState<`0x${string}`[]>([]);
   const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
   const [walletAccountMismatch, setWalletAccountMismatch] = useState(false);
+  const [pendingSignature, setPendingSignature] = useState<PendingWalletSignature | null>(null);
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
@@ -232,6 +242,7 @@ export function useWalletSession() {
         throw await apiResponseError(verifyResponse, "서명 검증 단계 실패");
       }
       const next = { address, authenticated: true };
+      setPendingSignature(null);
       setSession(next);
       setAuthenticationStatus("authenticated");
       setWalletAccountMismatch(false);
@@ -246,8 +257,9 @@ export function useWalletSession() {
     setError(null);
     setAvailableAccounts([]);
     setAccountSelectionAction(null);
+    setPendingSignature(null);
     try {
-      const { provider } = await connectWalletProvider(options);
+      const { connector, provider } = await connectWalletProvider(options);
       const accounts = walletAddresses(await walletRequest<string[]>(provider, "지갑 계정 연결", {
         method: "eth_requestAccounts",
       }));
@@ -255,6 +267,10 @@ export function useWalletSession() {
       if (accounts.length > 1) {
         setAvailableAccounts(accounts);
         setAccountSelectionAction(action);
+        return undefined;
+      }
+      if (connector === "walletconnect" && isMobileBrowser()) {
+        setPendingSignature({ address: accounts[0], action });
         return undefined;
       }
       return await authenticateAddress(provider, accounts[0]);
@@ -269,6 +285,26 @@ export function useWalletSession() {
 
   const connect = useCallback(() => authenticate("connect"), [authenticate]);
 
+  const continueAuthentication = useCallback(async () => {
+    if (!pendingSignature) return undefined;
+    const provider = connectedWalletProvider();
+    if (!provider) {
+      setError("연결된 지갑을 찾을 수 없습니다. 다시 연결해 주세요.");
+      setPendingSignature(null);
+      return undefined;
+    }
+    setPendingAction(pendingSignature.action);
+    setError(null);
+    try {
+      return await authenticateAddress(provider, pendingSignature.address);
+    } catch (cause) {
+      setError(userFacingErrorMessage(cause, "지갑 서명을 완료하지 못했습니다. 다시 시도해 주세요."));
+      throw cause;
+    } finally {
+      setPendingAction(null);
+    }
+  }, [authenticateAddress, pendingSignature]);
+
   const clearAuthenticatedSession = useCallback(async () => {
     await fetch(`${apiBaseUrl}/auth/logout`, {
       method: "POST",
@@ -277,6 +313,7 @@ export function useWalletSession() {
     setSession(null);
     setAuthenticationStatus("anonymous");
     setWalletAccountMismatch(false);
+    setPendingSignature(null);
   }, [setAuthenticationStatus, setSession]);
 
   const changeAccount = useCallback(async () => {
@@ -312,6 +349,7 @@ export function useWalletSession() {
 
     setPendingAction(accountSelectionAction ?? "connect");
     setError(null);
+    setPendingSignature(null);
     try {
       const next = await authenticateAddress(provider, normalizedAddress);
       setAvailableAccounts([]);
@@ -328,6 +366,7 @@ export function useWalletSession() {
   const cancelAccountSelection = useCallback(() => {
     setAvailableAccounts([]);
     setAccountSelectionAction(null);
+    setPendingSignature(null);
     setError(null);
   }, []);
 
@@ -346,6 +385,7 @@ export function useWalletSession() {
       setSession(null);
       setAuthenticationStatus("anonymous");
       setWalletAccountMismatch(false);
+      setPendingSignature(null);
       clearActiveWalletProvider();
       setPendingAction(null);
     }
@@ -357,9 +397,11 @@ export function useWalletSession() {
     busy: pendingAction !== null,
     pendingAction,
     availableAccounts,
+    pendingSignatureAddress: pendingSignature?.address,
     restoring: authenticationStatus === "restoring",
     authenticated: authenticationStatus === "authenticated" && !walletAccountMismatch,
     connect,
+    continueAuthentication,
     selectAccount,
     cancelAccountSelection,
     changeAccount,
