@@ -22,10 +22,22 @@ export function isUnsupportedPasskeyBrowser(
     || (mobile && (injectedMetaMask || /MetaMaskMobile/i.test(userAgent)));
 }
 
+export function passkeyBrowserGuidance(
+  userAgent = navigator.userAgent,
+  platform = navigator.platform,
+  maxTouchPoints = navigator.maxTouchPoints,
+): string {
+  const ios = /iPhone|iPad|iPod/i.test(userAgent)
+    || (/Macintosh/i.test(userAgent) && platform === "MacIntel" && maxTouchPoints > 1);
+  if (ios) return "주소를 복사해 Safari에서 기별을 열어 주세요.";
+  if (/Android/i.test(userAgent)) return "주소를 복사해 Chrome에서 기별을 열어 주세요.";
+  return "주소를 복사해 기기의 기본 브라우저에서 기별을 열어 주세요.";
+}
+
 function assertPasskeyBrowserSupport() {
   if (isUnsupportedPasskeyBrowser()) {
     throw new Error(
-      "앱 내 브라우저에서는 안전한 패스키를 사용할 수 없습니다. 주소를 복사해 Safari 또는 Chrome에서 기별을 열어 주세요.",
+      `앱 내 브라우저에서는 안전한 패스키를 사용할 수 없습니다. ${passkeyBrowserGuidance()}`,
     );
   }
   if (typeof PublicKeyCredential === "undefined" || !navigator.credentials?.create) {
