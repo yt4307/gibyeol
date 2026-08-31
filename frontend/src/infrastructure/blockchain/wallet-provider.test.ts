@@ -37,11 +37,13 @@ import {
   activeWalletProvider,
   clearActiveWalletProvider,
   connectWalletProvider,
+  connectedWalletAppLink,
   connectedWalletProvider,
   disconnectActiveWalletSession,
   ensureWalletProvider,
   isIOSBrowser,
   isMobileBrowser,
+  openConnectedWalletApp,
   restoreWalletProvider,
 } from "./wallet-provider";
 
@@ -264,6 +266,78 @@ describe("wallet provider selection", () => {
     expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X)", "MacIntel", 5)).toBe(true);
     expect(isIOSBrowser("Mozilla/5.0 (Macintosh; Intel Mac OS X)", "MacIntel", 0)).toBe(false);
     expect(provider.connect).not.toHaveBeenCalled();
+  });
+
+  it("opens the connected wallet's native app link in the same browser tab", () => {
+    const provider = {
+      request: vi.fn(),
+      session: {
+        namespaces: {},
+        peer: { metadata: { redirect: {
+          native: "metamask://",
+          universal: "https://metamask.app.link",
+        } } },
+      },
+    };
+    const navigate = vi.fn();
+
+    expect(connectedWalletAppLink(provider)).toBe("metamask://");
+    expect(openConnectedWalletApp(
+      provider,
+      navigate,
+      "Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile",
+    )).toBe(true);
+    expect(navigate).toHaveBeenCalledWith("metamask://");
+  });
+
+  it("uses a secure universal link when no native wallet link is available", () => {
+    const provider = {
+      request: vi.fn(),
+      session: {
+        namespaces: {},
+        peer: { metadata: { redirect: { universal: "https://metamask.app.link" } } },
+      },
+    };
+
+    expect(connectedWalletAppLink(provider)).toBe("https://metamask.app.link");
+  });
+
+  it("does not navigate to unsafe wallet metadata or open an app on desktop", () => {
+    const unsafeProvider = {
+      request: vi.fn(),
+      session: {
+        namespaces: {},
+        peer: { metadata: { redirect: { native: "javascript:alert(1)" } } },
+      },
+    };
+    const mobileNavigate = vi.fn();
+    expect(connectedWalletAppLink(unsafeProvider)).toBeUndefined();
+    expect(openConnectedWalletApp(
+      unsafeProvider,
+      mobileNavigate,
+      "Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile",
+    )).toBe(false);
+
+    const safeProvider = {
+      request: vi.fn(),
+      session: {
+        namespaces: {},
+        peer: { metadata: { redirect: { native: "metamask://" } } },
+      },
+    };
+    const desktopNavigate = vi.fn();
+    expect(openConnectedWalletApp(
+      safeProvider,
+      desktopNavigate,
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/152",
+    )).toBe(false);
+    expect(openConnectedWalletApp(
+      safeProvider,
+      () => { throw new Error("navigation blocked"); },
+      "Mozilla/5.0 (Linux; Android 15) Chrome/152 Mobile",
+    )).toBe(false);
+    expect(mobileNavigate).not.toHaveBeenCalled();
+    expect(desktopNavigate).not.toHaveBeenCalled();
   });
 
   it("opens WalletConnect when another wallet is explicitly requested", async () => {

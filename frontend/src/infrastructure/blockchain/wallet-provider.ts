@@ -24,6 +24,14 @@ type WalletConnectProvider = BrowserProvider & {
       methods?: string[];
       events?: string[];
     }>;
+    peer?: {
+      metadata?: {
+        redirect?: {
+          native?: string;
+          universal?: string;
+        };
+      };
+    };
   };
 };
 
@@ -125,6 +133,42 @@ export function connectedWalletProvider(): BrowserProvider | undefined {
 
 export function activeWalletConnector(): WalletConnector | undefined {
   return activeConnector ?? (injectedWalletProvider() ? "injected" : undefined);
+}
+
+function safeWalletAppLink(value: string | undefined): string | undefined {
+  const link = value?.trim();
+  if (!link) return undefined;
+  try {
+    const protocol = new URL(link).protocol.toLowerCase();
+    if (["javascript:", "data:", "file:", "blob:"].includes(protocol)) return undefined;
+    return link;
+  } catch {
+    return undefined;
+  }
+}
+
+/** 연결된 WalletConnect 지갑이 세션에 제공한 앱 링크를 반환한다. */
+export function connectedWalletAppLink(provider: BrowserProvider = activeWalletProvider()!): string | undefined {
+  const metadata = (provider as WalletConnectProvider | undefined)?.session?.peer?.metadata;
+  return safeWalletAppLink(metadata?.redirect?.native)
+    ?? safeWalletAppLink(metadata?.redirect?.universal);
+}
+
+/** 새 탭을 만들지 않고 현재 모바일 브라우저에서 연결된 지갑 앱으로 전환한다. */
+export function openConnectedWalletApp(
+  provider: BrowserProvider = activeWalletProvider()!,
+  navigate: (url: string) => void = (url) => window.location.assign(url),
+  userAgent = navigator.userAgent,
+): boolean {
+  if (!isMobileBrowser(userAgent)) return false;
+  const link = connectedWalletAppLink(provider);
+  if (!link) return false;
+  try {
+    navigate(link);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
