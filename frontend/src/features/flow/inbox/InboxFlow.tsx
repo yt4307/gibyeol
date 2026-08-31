@@ -9,9 +9,13 @@ import { RecoveryPanel } from "@features/components/inbox/RecoveryPanel";
 import type { InboxLetter } from "@features/data/inbox/inbox";
 import { useInbox } from "@features/hooks/inbox/use-inbox";
 
+const inboxUnlockAt = process.env.NODE_ENV === "development"
+  ? "2026-08-31T00:00:00+09:00"
+  : "2026-12-25T00:00:00+09:00";
+
 export function InboxFlow({ address }: { address: `0x${string}` }) {
   const inbox = useInbox(address); const [recoveryLetter, setRecoveryLetter] = useState<InboxLetter | null>(null);
-  const daysRemaining = useUnlockCountdown("2026-12-25T00:00:00+09:00");
+  const daysRemaining = useUnlockCountdown(inboxUnlockAt);
   const unlocked = daysRemaining === 0;
   const retry = () => inbox.selected ? inbox.open(inbox.selected) : inbox.refresh();
 
