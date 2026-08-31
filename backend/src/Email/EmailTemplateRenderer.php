@@ -6,8 +6,10 @@ namespace App\Email;
 
 final readonly class EmailTemplateRenderer
 {
-    public function __construct(private string $webOrigin)
-    {
+    public function __construct(
+        private string $webOrigin,
+        private string $emailAssetOrigin,
+    ) {
     }
 
     public function verification(string $code): string
@@ -151,6 +153,6 @@ final readonly class EmailTemplateRenderer
 
     private function assetUrl(string $path): string
     {
-        return htmlspecialchars(rtrim($this->webOrigin, '/').$path, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return htmlspecialchars(rtrim($this->emailAssetOrigin, '/').$path, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

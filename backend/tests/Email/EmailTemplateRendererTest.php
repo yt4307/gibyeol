@@ -13,7 +13,10 @@ final class EmailTemplateRendererTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->renderer = new EmailTemplateRenderer('https://www.gibyeol.kro.kr/');
+        $this->renderer = new EmailTemplateRenderer(
+            'http://localhost:3001/',
+            'https://www.gibyeol.kro.kr/',
+        );
     }
 
     public function testRendersAccessibleVerificationMessage(): void
@@ -46,7 +49,7 @@ final class EmailTemplateRendererTest extends TestCase
 
         self::assertStringContainsString('기별이 닿았습니다', $html);
         self::assertStringContainsString('<strong style="font-size:34px;font-weight:600;">2</strong>통', $html);
-        self::assertStringContainsString('https://www.gibyeol.kro.kr/inbox', $html);
+        self::assertStringContainsString('http://localhost:3001/inbox', $html);
         self::assertStringContainsString('https://www.gibyeol.kro.kr/brand/gibyeol-symbol-open.png', $html);
         self::assertStringContainsString('alt="봉투에서 별빛이 피어오르는 기별 심볼"', $html);
         self::assertStringContainsString('12월 25일 · 도착 안내', $html);

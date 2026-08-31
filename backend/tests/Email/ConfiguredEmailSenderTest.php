@@ -20,7 +20,7 @@ final class ConfiguredEmailSenderTest extends TestCase
             'resend',
             'secret',
             'sender@example.com',
-            new EmailTemplateRenderer('https://www.gibyeol.kro.kr'),
+            new EmailTemplateRenderer('https://www.gibyeol.kro.kr', 'https://www.gibyeol.kro.kr'),
         );
 
         $id = $sender->sendChristmasNotification('user@example.com', 2, 'gibyeol/test');
@@ -45,7 +45,7 @@ final class ConfiguredEmailSenderTest extends TestCase
             'resend',
             'secret',
             'sender@example.com',
-            new EmailTemplateRenderer('https://www.gibyeol.kro.kr'),
+            new EmailTemplateRenderer('https://www.gibyeol.kro.kr', 'https://www.gibyeol.kro.kr'),
         );
 
         $this->expectException(\RuntimeException::class);

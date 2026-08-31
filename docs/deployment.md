@@ -26,6 +26,7 @@ RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리
 |---|---|---|
 | `APP_ENV` | 예 | 환경명 |
 | `WEB_ORIGIN` | 예 | GitHub Pages origin, SIWE domain/URI와 CORS 기준 |
+| `EMAIL_ASSET_ORIGIN` | 예 | HTML 메일 로고를 제공하는 공개 HTTPS origin |
 | `API_ORIGIN` | 예 | PHP API의 외부 HTTPS origin |
 | `CHAIN_ID` | 예 | 환경별 허용 chain |
 | `BASE_RPC_URL` | 아니오 권고 | provider endpoint/API key 포함 가능 |

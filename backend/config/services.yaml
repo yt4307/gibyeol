@@ -6,6 +6,7 @@ services:
     autoconfigure: true
     bind:
       $webOrigin: '%env(WEB_ORIGIN)%'
+      $emailAssetOrigin: '%env(EMAIL_ASSET_ORIGIN)%'
       $packageStoragePath: '%env(PACKAGE_STORAGE_PATH)%'
       $chainId: '%env(int:CHAIN_ID)%'
       $sessionCookieName: '%env(SESSION_COOKIE_NAME)%'
