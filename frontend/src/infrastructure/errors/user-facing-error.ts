@@ -50,8 +50,6 @@ function errorRecords(cause: unknown): ErrorRecord[] {
 }
 
 export function userFacingErrorMessage(cause: unknown, fallback: string): string {
-  const transactionMessage = walletTransactionErrorMessage(cause);
-  if (transactionMessage) return transactionMessage;
   if (cause instanceof UserFacingError) return cause.message;
 
   const records = errorRecords(cause);
@@ -60,15 +58,21 @@ export function userFacingErrorMessage(cause: unknown, fallback: string): string
   const raw = records.map((record) => record.message).filter((value): value is string => typeof value === "string").join("\n");
   const text = raw.toLowerCase();
 
-  if (Number(code) === 4001 || Number(code) === 5000) return "지갑에서 요청을 취소했습니다. 필요할 때 다시 시도할 수 있어요.";
-  if (Number(code) === -32002) return "지갑에 이미 처리 중인 요청이 있습니다. 지갑 창을 확인해 주세요.";
-  if (Number(code) === 4100) return "지갑 계정 접근 권한이 없습니다. 지갑을 다시 연결해 주세요.";
-  if (Number(code) === 4900 || Number(code) === 4901) return "지갑 네트워크 연결이 끊어졌습니다. 연결을 확인해 주세요.";
+  // 일부 인앱 WebView는 WebAuthn 거절에도 지갑과 같은 4001 코드를 사용한다.
+  // 오류 이름을 먼저 확인해야 Passkey 실패를 거래 취소로 잘못 안내하지 않는다.
   if (name === "NotAllowedError") return "패스키 요청이 취소되었거나 시간이 초과되었습니다. 다시 시도해 주세요.";
   if (name === "InvalidStateError") return "이 기기에 이미 등록된 패스키가 있습니다. 기존 패스키를 사용해 주세요.";
   if (name === "NotSupportedError") return "이 브라우저나 기기는 필요한 패스키 기능을 지원하지 않습니다.";
   if (name === "SecurityError") return "현재 주소에서는 패스키를 사용할 수 없습니다. 공식 기별 주소로 접속해 주세요.";
   if (name === "AbortError") return "요청이 중단되었습니다. 다시 시도해 주세요.";
+
+  const transactionMessage = walletTransactionErrorMessage(cause);
+  if (transactionMessage) return transactionMessage;
+
+  if (Number(code) === 4001 || Number(code) === 5000) return "지갑에서 요청을 취소했습니다. 필요할 때 다시 시도할 수 있어요.";
+  if (Number(code) === -32002) return "지갑에 이미 처리 중인 요청이 있습니다. 지갑 창을 확인해 주세요.";
+  if (Number(code) === 4100) return "지갑 계정 접근 권한이 없습니다. 지갑을 다시 연결해 주세요.";
+  if (Number(code) === 4900 || Number(code) === 4901) return "지갑 네트워크 연결이 끊어졌습니다. 연결을 확인해 주세요.";
   if (/failed to fetch|networkerror|network request failed|load failed/.test(text)) return "서버에 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.";
   if (/internal json-rpc|rpc request|http request failed/.test(text)) return "블록체인 네트워크 응답이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
   if (/compressionstream|decompressionstream/.test(text)) return "이 브라우저는 편지 압축 기능을 지원하지 않습니다. 최신 브라우저에서 다시 시도해 주세요.";

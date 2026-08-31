@@ -5,6 +5,7 @@ describe("userFacingErrorMessage", () => {
   it("translates raw browser and provider errors", () => {
     expect(userFacingErrorMessage(new TypeError("Failed to fetch"), "실패")).toContain("서버에 연결");
     expect(userFacingErrorMessage(new DOMException("raw privacy warning", "NotAllowedError"), "실패")).toContain("패스키 요청");
+    expect(userFacingErrorMessage({ name: "NotAllowedError", code: 4001, message: "User denied" }, "실패")).toContain("패스키 요청");
     expect(userFacingErrorMessage({ code: -32002, message: "Request already pending" }, "실패")).toContain("처리 중인 요청");
   });
 

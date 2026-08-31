@@ -9,6 +9,32 @@ import {
 
 type PrfResults = { prf?: { results?: { first?: ArrayBuffer } } };
 
+type MetaMaskWindow = typeof window & {
+  ethereum?: { isMetaMask?: boolean };
+};
+
+export function isUnsupportedPasskeyBrowser(
+  userAgent = navigator.userAgent,
+  injectedMetaMask = Boolean((window as MetaMaskWindow).ethereum?.isMetaMask),
+): boolean {
+  const mobile = /Android|iPhone|iPad|iPod/i.test(userAgent);
+  return /KAKAOTALK/i.test(userAgent)
+    || (mobile && (injectedMetaMask || /MetaMaskMobile/i.test(userAgent)));
+}
+
+function assertPasskeyBrowserSupport() {
+  if (isUnsupportedPasskeyBrowser()) {
+    throw new Error(
+      "앱 내 브라우저에서는 안전한 패스키를 사용할 수 없습니다. 주소를 복사해 Safari 또는 Chrome에서 기별을 열어 주세요.",
+    );
+  }
+  if (typeof PublicKeyCredential === "undefined" || !navigator.credentials?.create) {
+    throw new Error(
+      "이 브라우저는 패스키를 지원하지 않습니다. 최신 Safari 또는 Chrome에서 다시 시도해 주세요.",
+    );
+  }
+}
+
 function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const output = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(output).set(bytes);
@@ -39,6 +65,7 @@ async function authenticatePrf(credentialId: ArrayBuffer, prfInput: Uint8Array) 
 }
 
 export async function createPasskeyMailbox(walletAddress: string) {
+  assertPasskeyBrowserSupport();
   const seed = secureRandomBytes(32);
   const prfInput = secureRandomBytes(32);
   const credential = (await navigator.credentials.create({
@@ -78,6 +105,7 @@ export async function createPasskeyMailbox(walletAddress: string) {
 }
 
 export async function openPasskeyMailbox(envelope: Uint8Array) {
+  assertPasskeyBrowserSupport();
   const parsed = parseGpk1(envelope);
   const credential = (await navigator.credentials.get({
     publicKey: {
