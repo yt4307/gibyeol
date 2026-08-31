@@ -30,8 +30,12 @@ docker compose -f docker-compose.dev.yml run --rm --no-deps frontend pnpm build:
 
 ```powershell
 Copy-Item .env.example .env
+Copy-Item backend/.env.local.example backend/.env.local
 docker compose -f docker-compose.dev.yml up -d --build
 ```
+
+`backend/.env.local`에는 로컬에서 실제 발송이 필요할 때만 Resend API key와 인증된 발신 주소를
+입력한다. 이 파일은 Git에서 제외되며 `backend/.env.local.example`에는 실제 값을 넣지 않는다.
 
 | 서비스 | 주소 |
 |---|---|

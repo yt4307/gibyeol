@@ -16,9 +16,16 @@ Node/PHP/Composer/Foundry를 호스트에 설치하지 않는다. Docker Desktop
 
 ```powershell
 Copy-Item .env.example .env
+Copy-Item backend/.env.local.example backend/.env.local
 docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.dev.yml ps
 ```
+
+`backend/.env.local`은 Symfony backend의 로컬 비밀값 전용 파일이며 Git에서 제외된다.
+실제 이메일 발송이 필요하면 `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`을 이 파일에
+입력한다. Compose는 이메일 설정을 process environment로 덮어쓰지 않으므로 Symfony가
+`backend/.env.local`을 `backend/.env`보다 우선 적용한다. 실제 값은 `.env.local.example`이나
+루트 `.env`에 기록하지 않는다.
 
 개발 스택은 기본 Compose와 동시에 실행할 수 있도록 별도 project name과 host port를 사용한다.
 
@@ -128,6 +135,8 @@ pnpm verify:quicknet
 
 ## 환경변수 경계
 
-루트 `.env`는 Docker Compose 로컬 설정이며 commit하지 않는다. 브라우저에 전달되는 값만 `NEXT_PUBLIC_` prefix를 사용한다. private RPC credential, deployer/recovery key, DB/Resend secret은 frontend 환경에 절대 넣지 않는다.
+루트 `.env`는 Docker Compose 로컬 설정이며 commit하지 않는다. Backend 비밀값은 Git에서 제외된
+`backend/.env.local`에 둔다. 브라우저에 전달되는 값만 `NEXT_PUBLIC_` prefix를 사용한다. private RPC
+credential, deployer/recovery key, DB/Resend secret은 frontend 환경에 절대 넣지 않는다.
 
 Staging/production 값은 로컬 `.env`를 재사용하지 않고 배포 환경의 secret/config에서 주입한다. GitHub Pages의 `NEXT_PUBLIC_*` 값은 build 시 bundle에 포함되는 공개 설정이며 runtime에 바뀌지 않는다. URL 구조와 `PAGES_BASE_PATH`가 바뀌면 frontend를 다시 build한다.
