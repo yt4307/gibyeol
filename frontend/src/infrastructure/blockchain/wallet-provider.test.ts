@@ -39,8 +39,10 @@ import {
   connectWalletProvider,
   connectedWalletProvider,
   disconnectActiveWalletSession,
+  ensureWalletProvider,
   isIOSBrowser,
   isMobileBrowser,
+  restoreWalletProvider,
 } from "./wallet-provider";
 
 function setInjectedProvider(provider?: BrowserProvider) {
@@ -143,6 +145,58 @@ describe("wallet provider selection", () => {
     expect(mocks.init.mock.calls[0]?.[0]?.metadata).toEqual(expect.objectContaining({
       redirect: { universal: "https://www.gibyeol.kro.kr" },
     }));
+  });
+
+  it("restores a persisted WalletConnect session without opening the connection screen", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider = {
+      session: approvedSession(),
+      accounts: ["0x1111111111111111111111111111111111111111"],
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    const restored = await restoreWalletProvider();
+
+    expect(restored).toEqual({ connector: "walletconnect", provider, accounts: provider.accounts });
+    expect(provider.connect).not.toHaveBeenCalled();
+    expect(activeWalletProvider()).toBe(provider);
+  });
+
+  it("does not open WalletConnect when no persisted session exists", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const provider = {
+      session: undefined,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await expect(restoreWalletProvider()).resolves.toBeUndefined();
+
+    expect(provider.connect).not.toHaveBeenCalled();
+    expect(activeWalletProvider()).toBeUndefined();
+  });
+
+  it("recovers the persisted provider again at transaction time", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "project-id");
+    const account = "0x1111111111111111111111111111111111111111";
+    const provider = {
+      session: approvedSession(),
+      accounts: [account],
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      request: vi.fn(),
+    };
+    mocks.init.mockResolvedValue(provider);
+
+    await expect(ensureWalletProvider(account)).resolves.toBe(provider);
+
+    expect(provider.connect).not.toHaveBeenCalled();
+    expect(provider.request).not.toHaveBeenCalled();
   });
 
   it("omits automatic WalletConnect redirects on iOS to preserve the original browser tab", async () => {

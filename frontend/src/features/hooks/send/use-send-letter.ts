@@ -15,6 +15,7 @@ import { isAddress, parseAbiItem, toHex } from "viem";
 import { apiBaseUrl, chainId, contractAbi, contractAddress, deploymentBlock, publicClient, walletClient } from "@/infrastructure/blockchain/config";
 import { loadBlockRangePages } from "@/infrastructure/blockchain/log-ranges";
 import { createQuicknetTlock } from "@/infrastructure/blockchain/quicknet-tlock";
+import { ensureWalletProvider } from "@/infrastructure/blockchain/wallet-provider";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
 import { preprocessMediaFiles, type MediaPreprocessingSummary } from "@features/data/send/media-preprocessing";
 import { draftStorageKey, emptyDraft, type SendDraft } from "@features/data/send/send-draft";
@@ -161,7 +162,8 @@ export function useSendLetter(sender?: `0x${string}`) {
         }
         const recipientActive = await isMailboxActive(recipient);
         if (!recipientActive) throw new Error("받는 분의 메일박스가 비활성화되어 있습니다.");
-        const client = walletClient();
+        const provider = await ensureWalletProvider(sender);
+        const client = walletClient(provider);
         let hash: `0x${string}` | null = null;
         for (let attempt = 0; attempt < 2; attempt += 1) {
           const latestKeyId = Number(await publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName: "currentKeyId", args: [recipient] }));

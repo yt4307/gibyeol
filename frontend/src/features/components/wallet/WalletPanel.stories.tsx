@@ -6,6 +6,7 @@ const meta = {
   component: WalletPanel,
   args: {
     onConnect: () => undefined,
+    onReconnect: () => undefined,
     onContinueSignature: () => undefined,
     onSelectAccount: () => undefined,
     onCancelAccountSelection: () => undefined,

@@ -27,6 +27,7 @@ function cacheWalletSession(cachedAddress: `0x${string}` = address) {
 describe("useWalletSession", () => {
   beforeEach(() => {
     walletConnectMocks.init.mockReset();
+    vi.stubEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID", "");
     window.localStorage.clear();
     clearActiveWalletProvider();
     delete (window as typeof window & { ethereum?: unknown }).ethereum;
@@ -124,6 +125,7 @@ describe("useWalletSession", () => {
 
     await waitFor(() => expect(result.current.authenticated).toBe(true));
     expect(result.current.session?.address).toBe(secondAddress);
+    await waitFor(() => expect(result.current.walletReady).toBe(true));
   });
 
   it("keeps the session when a mobile wallet briefly reports an empty account list", async () => {

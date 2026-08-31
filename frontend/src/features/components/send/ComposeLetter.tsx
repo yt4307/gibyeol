@@ -10,6 +10,7 @@ import { sendStageLabel, type SendDraft, type SendStage } from "@features/data/s
 
 export type ComposeLetterProps = {
   draft: SendDraft;
+  walletReady?: boolean;
   busy?: boolean;
   error?: string | null;
   mediaSummary?: MediaPreprocessingSummary | null;
@@ -21,7 +22,7 @@ export type ComposeLetterProps = {
 const stageIndex: Record<SendStage, number> = { DRAFT: 0, PACKING: 0, UPLOADING_PACKAGE: 1, ENCRYPTING_KEY: 2, WAITING_TRANSACTION: 2, SEALED: 3, IN_TRANSIT: 3, ARRIVED: 3, OPENED: 3 };
 const progressLabels = ["소포 꾸리기", "안전하게 맡기기", "지갑으로 봉인", "접수 완료"];
 
-export function ComposeLetter({ draft, busy = false, error, mediaSummary, onChange, onSubmit, onReset }: ComposeLetterProps) {
+export function ComposeLetter({ draft, walletReady = true, busy = false, error, mediaSummary, onChange, onSubmit, onReset }: ComposeLetterProps) {
   const [selection, setSelection] = useState<{ letterId: string; files: readonly File[] } | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const resetConfirmRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export function ComposeLetter({ draft, busy = false, error, mediaSummary, onChan
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (formReady) onSubmit(selectedFiles);
+    if (formReady && walletReady) onSubmit(selectedFiles);
   };
   const reset = () => { setConfirmingReset(false); setSelection(null); onReset(); };
 
@@ -69,11 +70,13 @@ export function ComposeLetter({ draft, busy = false, error, mediaSummary, onChan
         {selectedFiles.length > 0 && <SelectedFiles aria-label="선택한 첨부파일">{selectedFiles.map((file) => <li key={`${file.name}-${file.lastModified}`}><span>{file.name}</span><small>{formatMediaBytes(file.size)}</small></li>)}<SelectedTotal><span>총 {selectedFiles.length}개</span><strong>{formatMediaBytes(selectedBytes)}</strong></SelectedTotal></SelectedFiles>}
         {mediaSummary && <MediaStatus role="status">전처리 완료 · {formatMediaBytes(mediaSummary.originalBytes)} → {formatMediaBytes(mediaSummary.processedBytes)} · 예상 소포 {formatMediaBytes(mediaSummary.estimatedArchiveBytes)}</MediaStatus>}
       </Field>
-      <ApprovalNote>봉인을 시작하면 소포를 암호화한 뒤 지갑에서 블록체인 기록을 승인하게 됩니다.</ApprovalNote>
+      <ApprovalNote>{walletReady
+        ? "봉인을 시작하면 소포를 암호화한 뒤 지갑에서 블록체인 기록을 승인하게 됩니다."
+        : "기별을 봉인하려면 위의 ‘지갑 다시 연결’을 먼저 눌러 주세요. 작성한 내용은 그대로 유지됩니다."}</ApprovalNote>
     </>}
 
     <Actions>
-      {!complete && <Submit disabled={busy || !formReady}>{busy ? sendStageLabel[draft.stage] : editable ? "봉인하고 지갑에서 승인" : "접수 이어하기"}</Submit>}
+      {!complete && <Submit disabled={busy || !formReady || !walletReady}>{busy ? sendStageLabel[draft.stage] : walletReady ? editable ? "봉인하고 지갑에서 승인" : "접수 이어하기" : "지갑 연결 후 봉인"}</Submit>}
       <Reset type="button" disabled={busy} onClick={() => editable && (draft.message || draft.recipient || selectedFiles.length) ? setConfirmingReset(true) : reset()}>{complete ? "새 기별 쓰기" : "새로 작성"}</Reset>
     </Actions>
     {confirmingReset && <ResetConfirm ref={resetConfirmRef} tabIndex={-1} role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-description"><div><strong id="reset-title">작성 중인 내용을 지울까요?</strong><p id="reset-description">입력한 편지와 선택한 첨부파일을 되돌릴 수 없습니다.</p></div><div><button type="button" onClick={() => setConfirmingReset(false)}>계속 작성</button><button type="button" className="danger" onClick={reset}>내용 지우기</button></div></ResetConfirm>}

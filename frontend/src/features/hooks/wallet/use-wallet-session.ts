@@ -16,6 +16,7 @@ import {
   disconnectActiveWalletSession,
   injectedWalletProvider,
   isMobileBrowser,
+  restoreWalletProvider,
 } from "@/infrastructure/blockchain/wallet-provider";
 import type { WalletConnector } from "@/infrastructure/blockchain/wallet-provider";
 import { apiResponseError, userFacingErrorMessage } from "@/infrastructure/errors/user-facing-error";
@@ -81,6 +82,7 @@ export function useWalletSession() {
   const setSession = useAppStore((state) => state.setWalletSession);
   const authenticationStatus = useAppStore((state) => state.authenticationStatus);
   const setAuthenticationStatus = useAppStore((state) => state.setAuthenticationStatus);
+  const sessionAddress = session?.address;
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<WalletPendingAction>(null);
   const [walletProgress, setWalletProgress] = useState<WalletProgress>(null);
@@ -88,6 +90,10 @@ export function useWalletSession() {
   const [accountSelectionAction, setAccountSelectionAction] = useState<AuthenticationAction | null>(null);
   const [walletAccountMismatch, setWalletAccountMismatch] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<PendingWalletSignature | null>(null);
+  const [walletProviderReady, setWalletProviderReady] = useState(() => Boolean(connectedWalletProvider()));
+  const [walletProviderRestoring, setWalletProviderRestoring] = useState(
+    () => !connectedWalletProvider(),
+  );
 
   const forgetSession = useCallback((notifyServer = false) => {
     setSession(null);
@@ -147,7 +153,49 @@ export function useWalletSession() {
   }, [forgetSession, setAuthenticationStatus, setSession]);
 
   useEffect(() => {
-    if (!session) return;
+    let cancelled = false;
+
+    const restoreProvider = async () => {
+      if (authenticationStatus !== "authenticated" || !sessionAddress) {
+        setWalletProviderReady(false);
+        setWalletProviderRestoring(authenticationStatus === "restoring");
+        return;
+      }
+
+      if (connectedWalletProvider()) {
+        setWalletProviderReady(true);
+        setWalletProviderRestoring(false);
+        return;
+      }
+
+      setWalletProviderRestoring(true);
+      try {
+        const connected = await restoreWalletProvider();
+        if (cancelled) return;
+        if (!connected) {
+          setWalletProviderReady(false);
+          return;
+        }
+        const accounts = walletAddresses(connected.accounts?.length
+          ? connected.accounts
+          : await walletRequest<string[]>(connected.provider, "지갑 계정 복원", {
+            method: "eth_accounts",
+          }));
+        if (cancelled) return;
+        setWalletProviderReady(accounts.includes(sessionAddress));
+      } catch {
+        if (!cancelled) setWalletProviderReady(false);
+      } finally {
+        if (!cancelled) setWalletProviderRestoring(false);
+      }
+    };
+
+    void restoreProvider();
+    return () => { cancelled = true; };
+  }, [authenticationStatus, sessionAddress]);
+
+  useEffect(() => {
+    if (!sessionAddress || !walletProviderReady) return;
     // 새로고침 뒤 발견된 임의의 injected wallet은 SIWE에 사용한 지갑이라는 보장이 없다.
     // 현재 실행 중 사용자가 명시적으로 연결한 provider의 이벤트만 세션에 반영한다.
     const provider = connectedWalletProvider() as EventedWalletProvider;
@@ -162,7 +210,7 @@ export function useWalletSession() {
             const confirmedAccounts = walletAddresses(accounts);
             // 새로고침이나 지갑 앱 복귀 직후에는 WalletConnect가 일시적으로 빈 계정 목록을
             // 보낼 수 있다. 서버 세션은 유효하므로 실제 다른 주소가 확인될 때만 해제한다.
-            if (confirmedAccounts.length === 0 || confirmedAccounts.includes(session.address)) return;
+            if (confirmedAccounts.length === 0 || confirmedAccounts.includes(sessionAddress)) return;
             setError("지갑에서 계정이 변경되었습니다. 변경한 계정으로 다시 로그인해 주세요.");
             // provider 이벤트만으로 서버 세션을 삭제하지 않는다. 사용자가 계정 변경이나
             // 로그아웃을 명시적으로 선택하기 전까지 HttpOnly 세션 쿠키를 보존한다.
@@ -178,7 +226,7 @@ export function useWalletSession() {
       if (confirmationTimer) clearTimeout(confirmationTimer);
       provider.removeListener?.("accountsChanged", handleAccountsChanged);
     };
-  }, [session]);
+  }, [sessionAddress, walletProviderReady]);
 
   const authenticateAddress = useCallback(async (
     provider: NonNullable<ReturnType<typeof activeWalletProvider>>,
@@ -244,6 +292,8 @@ export function useWalletSession() {
       setSession(next);
       setAuthenticationStatus("authenticated");
       setWalletAccountMismatch(false);
+      setWalletProviderReady(true);
+      setWalletProviderRestoring(false);
       return next;
   }, [setAuthenticationStatus, setSession]);
 
@@ -285,6 +335,33 @@ export function useWalletSession() {
   }, [authenticateAddress]);
 
   const connect = useCallback(() => authenticate("connect"), [authenticate]);
+
+  const reconnect = useCallback(async () => {
+    if (!session) return undefined;
+    setPendingAction("connect");
+    setError(null);
+    try {
+      const connected = await connectWalletProvider();
+      const accounts = walletAddresses(connected.accounts?.length
+        ? connected.accounts
+        : await walletRequest<string[]>(connected.provider, "지갑 계정 연결", {
+          method: "eth_requestAccounts",
+        }));
+      if (!accounts.includes(session.address)) {
+        setWalletProviderReady(false);
+        throw new Error("로그인한 계정과 연결한 지갑 계정이 다릅니다. 같은 계정으로 다시 연결해 주세요.");
+      }
+      setWalletProviderReady(true);
+      setWalletAccountMismatch(false);
+      return connected;
+    } catch (cause) {
+      setError(userFacingErrorMessage(cause, "거래용 지갑을 다시 연결하지 못했습니다."));
+      throw cause;
+    } finally {
+      setPendingAction(null);
+      setWalletProviderRestoring(false);
+    }
+  }, [session]);
 
   const continueAuthentication = useCallback(async () => {
     if (!pendingSignature) return undefined;
@@ -394,6 +471,8 @@ export function useWalletSession() {
       setPendingSignature(null);
       setWalletProgress(null);
       setPendingAction(null);
+      setWalletProviderReady(false);
+      setWalletProviderRestoring(false);
     }
   }, [setAuthenticationStatus, setSession]);
 
@@ -407,7 +486,10 @@ export function useWalletSession() {
     pendingSignatureAddress: pendingSignature?.address,
     restoring: authenticationStatus === "restoring",
     authenticated: authenticationStatus === "authenticated" && !walletAccountMismatch,
+    walletReady: walletProviderReady,
+    walletRestoring: walletProviderRestoring,
     connect,
+    reconnect,
     continueAuthentication,
     selectAccount,
     cancelAccountSelection,

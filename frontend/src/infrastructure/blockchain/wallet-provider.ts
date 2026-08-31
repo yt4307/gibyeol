@@ -45,6 +45,39 @@ let activeProvider: BrowserProvider | undefined;
 let activeConnector: WalletConnector | undefined;
 let activeWalletConnectProvider: WalletConnectProvider | undefined;
 
+async function initializeWalletConnectProvider(): Promise<WalletConnectProvider> {
+  if (activeWalletConnectProvider) return activeWalletConnectProvider;
+
+  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
+  if (!projectId) {
+    throw new Error("모바일 지갑 연결 설정이 완료되지 않았습니다.");
+  }
+
+  const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;
+  const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
+  const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
+  activeWalletConnectProvider = (await EthereumProvider.init({
+    projectId,
+    customStoragePrefix: "gibyeol-wallet-v2",
+    chains: [configuredChainId],
+    methods: [...walletConnectRequiredMethods],
+    events: [...walletConnectEvents],
+    optionalMethods: [...walletConnectOptionalMethods],
+    rpcMap: {
+      [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
+    },
+    metadata: {
+      name: "기별",
+      description: "미래로 보내는 암호 편지",
+      url: origin,
+      icons: [],
+      ...(!isIOSBrowser() && { redirect: { universal: origin } }),
+    },
+    showQrModal: true,
+  })) as WalletConnectProvider;
+  return activeWalletConnectProvider;
+}
+
 function walletConnectSessionHasRequiredCapabilities(
   provider: WalletConnectProvider,
   configuredChainId: number,
@@ -94,6 +127,63 @@ export function activeWalletConnector(): WalletConnector | undefined {
   return activeConnector ?? (injectedWalletProvider() ? "injected" : undefined);
 }
 
+/**
+ * 새로고침 뒤 브라우저 저장소에 남아 있는 지갑 연결만 복원한다.
+ * 저장된 WalletConnect 세션이 없을 때는 연결 화면을 열지 않는다.
+ */
+export async function restoreWalletProvider(): Promise<ConnectedWalletProvider | undefined> {
+  const injected = injectedWalletProvider();
+  if (injected) {
+    activeProvider = injected;
+    activeConnector = "injected";
+    return { connector: "injected", provider: injected };
+  }
+
+  if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim()) return undefined;
+  const provider = await initializeWalletConnectProvider();
+  if (!provider.session) return undefined;
+
+  const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
+  if (!walletConnectSessionHasRequiredCapabilities(provider, configuredChainId)) {
+    await provider.disconnect().catch(() => undefined);
+    return undefined;
+  }
+
+  activeProvider = provider;
+  activeConnector = "walletconnect";
+  return { connector: "walletconnect", provider, accounts: provider.accounts };
+}
+
+function normalizedProviderAccounts(provider: BrowserProvider): string[] {
+  const walletConnectProvider = provider as WalletConnectProvider;
+  const sessionAccounts = Object.values(walletConnectProvider.session?.namespaces ?? {})
+    .flatMap((namespace) => namespace.accounts ?? []);
+  return [...(walletConnectProvider.accounts ?? []), ...sessionAccounts]
+    .map((account) => account.split(":").at(-1)?.toLowerCase())
+    .filter((account): account is string => Boolean(account));
+}
+
+/** 거래 직전에 실제 서명 가능한 지갑과 로그인 계정의 일치 여부를 다시 확인한다. */
+export async function ensureWalletProvider(expectedAddress: string): Promise<BrowserProvider> {
+  const provider = connectedWalletProvider() ?? (await restoreWalletProvider())?.provider;
+  if (!provider) {
+    throw new Error("거래를 승인할 지갑 연결이 만료되었습니다. 지갑을 다시 연결해 주세요.");
+  }
+
+  let accounts = normalizedProviderAccounts(provider);
+  if (accounts.length === 0) {
+    const requested = await provider.request({ method: "eth_accounts" });
+    accounts = Array.isArray(requested)
+      ? requested.filter((account): account is string => typeof account === "string")
+        .map((account) => account.toLowerCase())
+      : [];
+  }
+  if (!accounts.includes(expectedAddress.toLowerCase())) {
+    throw new Error("로그인한 계정과 거래를 승인할 지갑 계정이 다릅니다. 같은 계정으로 다시 연결해 주세요.");
+  }
+  return provider;
+}
+
 export async function connectWalletProvider(
   { replaceSession = false, connector = "auto" }: ConnectWalletProviderOptions = {},
 ): Promise<ConnectedWalletProvider> {
@@ -117,40 +207,12 @@ export async function connectWalletProvider(
     return { connector: "injected", provider: injected };
   }
 
-  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
-  if (!projectId) {
-    throw new Error("모바일 지갑 연결 설정이 완료되지 않았습니다.");
-  }
-
   if (replaceSession && activeWalletConnectProvider) {
     await disconnectActiveWalletSession();
   }
 
-  const origin = process.env.NEXT_PUBLIC_WEB_ORIGIN?.trim() || window.location.origin;
   const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "31337");
-  let provider = activeWalletConnectProvider;
-  if (!provider) {
-    const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-    provider = (await EthereumProvider.init({
-      projectId,
-      customStoragePrefix: "gibyeol-wallet-v2",
-      chains: [configuredChainId],
-      methods: [...walletConnectRequiredMethods],
-      events: [...walletConnectEvents],
-      optionalMethods: [...walletConnectOptionalMethods],
-      rpcMap: {
-        [configuredChainId]: process.env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8545",
-      },
-      metadata: {
-        name: "기별",
-        description: "미래로 보내는 암호 편지",
-        url: origin,
-        icons: [],
-        ...(!isIOSBrowser() && { redirect: { universal: origin } }),
-      },
-      showQrModal: true,
-    })) as WalletConnectProvider;
-  }
+  const provider = await initializeWalletConnectProvider();
 
   const staleSession = Boolean(provider.session) && (
     replaceSession
@@ -170,7 +232,6 @@ export async function connectWalletProvider(
   }
   activeProvider = provider;
   activeConnector = "walletconnect";
-  activeWalletConnectProvider = provider;
   return { connector: "walletconnect", provider, accounts: provider.accounts };
 }
 

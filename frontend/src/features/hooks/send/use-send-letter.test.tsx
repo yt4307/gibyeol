@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getTransaction: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
   writeContract: vi.fn(),
+  ensureWalletProvider: vi.fn(),
   wrapLetterKeyForRecipient: vi.fn(),
   preprocessMediaFiles: vi.fn(),
 }));
@@ -35,6 +36,10 @@ vi.mock("@/infrastructure/blockchain/config", () => ({
 
 vi.mock("@/infrastructure/blockchain/quicknet-tlock", () => ({
   createQuicknetTlock: () => ({ encrypt: vi.fn(), decrypt: vi.fn() }),
+}));
+
+vi.mock("@/infrastructure/blockchain/wallet-provider", () => ({
+  ensureWalletProvider: mocks.ensureWalletProvider,
 }));
 
 vi.mock("@features/data/send/media-preprocessing", () => ({
@@ -89,6 +94,7 @@ describe("useSendLetter", () => {
     });
     mocks.waitForTransactionReceipt.mockResolvedValue({ status: "success" });
     mocks.writeContract.mockResolvedValue(transactionHash);
+    mocks.ensureWalletProvider.mockResolvedValue({ request: vi.fn() });
     mocks.getBlockNumber.mockResolvedValue(1n);
     mocks.getLogs.mockResolvedValue([]);
   });
@@ -117,6 +123,7 @@ describe("useSendLetter", () => {
     });
     expect(fetch).toHaveBeenCalledOnce();
     expect(mocks.writeContract).toHaveBeenCalledOnce();
+    expect(mocks.ensureWalletProvider).toHaveBeenCalledWith(sender);
   });
 
   it("keeps the prepared letter and shows a concise message when the wallet rejects signing", async () => {

@@ -65,6 +65,7 @@ describe("PostOfficeFlow integration", () => {
     useAppStore.setState({ walletSession: null, authenticationStatus: "anonymous" });
     setMailboxState(null);
     setEmailState(false);
+    delete (window as typeof window & { ethereum?: unknown }).ethereum;
   });
 
   afterEach(() => cleanup());
@@ -141,7 +142,10 @@ describe("PostOfficeFlow integration", () => {
     expect(screen.getByRole("main").getAttribute("aria-busy")).toBe("true");
   });
 
-  it("selects the routed flow and preserves the wallet session across remounts", () => {
+  it("selects the routed flow and preserves the wallet session across remounts", async () => {
+    (window as typeof window & { ethereum?: { request: ReturnType<typeof vi.fn> } }).ethereum = {
+      request: vi.fn().mockResolvedValue([address]),
+    };
     useAppStore.setState({ walletSession: { address, authenticated: true }, authenticationStatus: "authenticated" });
     setMailboxState(2);
     setEmailState(true);
@@ -160,7 +164,7 @@ describe("PostOfficeFlow integration", () => {
     first.unmount();
     render(<PostOfficeFlow view="inbox" />);
 
-    expect(screen.getByRole("button", { name: "계정 변경" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "계정 변경" })).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "기별 이용 준비 단계" }).textContent).toContain("3 / 3");
     expect(screen.getByRole("button", { name: "다른 지갑" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();

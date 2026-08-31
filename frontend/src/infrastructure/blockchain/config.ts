@@ -38,6 +38,6 @@ export function browserProvider(): BrowserProvider {
   return provider;
 }
 
-export function walletClient() {
-  return createWalletClient({ chain, transport: custom(browserProvider()) });
+export function walletClient(provider: BrowserProvider = browserProvider()) {
+  return createWalletClient({ chain, transport: custom(provider) });
 }

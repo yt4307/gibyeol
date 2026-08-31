@@ -56,8 +56,11 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
         pendingAction={wallet.pendingAction}
         walletProgress={wallet.walletProgress}
         restoring={wallet.restoring}
+        walletReady={wallet.walletReady}
+        walletRestoring={wallet.walletRestoring}
         error={wallet.error}
         onConnect={() => { void wallet.connect().catch(() => undefined); }}
+        onReconnect={() => { void wallet.reconnect().catch(() => undefined); }}
         onContinueSignature={() => { void wallet.continueAuthentication().catch(() => undefined); }}
         onSelectAccount={(address) => { void wallet.selectAccount(address).catch(() => undefined); }}
         onCancelAccountSelection={wallet.cancelAccountSelection}
@@ -67,7 +70,7 @@ export function PostOfficeFlow({ view = "send" }: PostOfficeFlowProps) {
       />
       {authenticatedAddress && <MailboxOnboarding keyId={mailbox.keyId} active={mailbox.active} busy={mailbox.busy} error={mailbox.error} onRegister={() => { void Promise.resolve(mailbox.register()).catch(() => undefined); }} onDeactivate={() => { void Promise.resolve(mailbox.deactivate()).catch(() => undefined); }} />}
       {mailboxReady && <EmailRegistration verified={email.verified} codeSent={email.codeSent} busy={email.busy} error={email.error} onRequestCode={(value) => { void Promise.resolve(email.requestCode(value)).catch(() => undefined); }} onVerifyCode={(value) => { void Promise.resolve(email.verifyCode(value)).catch(() => undefined); }} />}
-      {mailboxReady && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? mailbox.active ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
+      {mailboxReady && email.verified && authenticatedAddress ? <><Tabs aria-label="우체국 메뉴"><Link className={view === "send" ? "active" : ""} href="/send" aria-current={view === "send" ? "page" : undefined}>편지 보내기</Link><Link className={view === "inbox" ? "active" : ""} href="/inbox" aria-current={view === "inbox" ? "page" : undefined}>받은 기별</Link></Tabs>{view === "send" ? <SendFlow address={authenticatedAddress} walletReady={wallet.walletReady} /> : <InboxFlow address={authenticatedAddress} />}</> : authenticatedAddress && <Hint>{mailbox.keyId && mailbox.keyId > 0 ? mailbox.active ? "이메일 인증을 마치면 편지를 보내고 받을 수 있어요." : "메일박스를 다시 활성화하면 편지를 보내고 받을 수 있어요." : "편지를 보내고 받으려면 먼저 메일박스를 만들어 주세요."}</Hint>}
     </Workspace>
   </Shell>;
 }

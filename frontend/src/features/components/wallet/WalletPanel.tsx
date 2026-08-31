@@ -11,8 +11,11 @@ export type WalletPanelProps = {
   pendingAction?: WalletPendingAction;
   walletProgress?: WalletProgress;
   restoring?: boolean;
+  walletReady?: boolean;
+  walletRestoring?: boolean;
   error?: string | null;
   onConnect: () => void;
+  onReconnect: () => void;
   onContinueSignature: () => void;
   onSelectAccount: (address: string) => void;
   onCancelAccountSelection: () => void;
@@ -33,8 +36,11 @@ export function WalletPanel({
   pendingAction = null,
   walletProgress = null,
   restoring = false,
+  walletReady = true,
+  walletRestoring = false,
   error,
   onConnect,
+  onReconnect,
   onContinueSignature,
   onSelectAccount,
   onCancelAccountSelection,
@@ -54,7 +60,14 @@ export function WalletPanel({
           : restoring ? "로그인 상태를 불러오는 중이에요" : "지갑 연결이 필요해요"}</Value>
       </div>
       <Actions>
-        {address ? <>
+        {address && !walletReady ? <>
+          <TextButton type="button" onClick={onLogout} disabled={busy || restoring || walletRestoring}>
+            {pendingAction === "logout" ? "로그아웃 중…" : "로그아웃"}
+          </TextButton>
+          <Button type="button" onClick={onReconnect} disabled={busy || restoring || walletRestoring}>
+            {walletRestoring ? "지갑 확인 중…" : pendingAction === "connect" ? "지갑 연결 중…" : "지갑 다시 연결"}
+          </Button>
+        </> : address ? <>
           <TextButton type="button" onClick={onLogout} disabled={busy || restoring}>
             {pendingAction === "logout" ? "로그아웃 중…" : "로그아웃"}
           </TextButton>
@@ -104,8 +117,12 @@ export function WalletPanel({
       {!address && !restoring && <HelpText>{pendingSignatureAddress
         ? "연결이 완료되었습니다. 지갑에서 서명을 승인한 뒤 브라우저의 기별 탭으로 직접 돌아와 주세요."
         : "모바일에서는 설치된 지갑 앱을 선택해 연결할 수 있어요."}</HelpText>}
+      {address && !walletReady && !walletRestoring && <HelpText>
+        로그인은 유지 중이에요. 기별 봉인처럼 블록체인 승인이 필요한 작업을 위해 같은 지갑을 다시 연결해 주세요.
+      </HelpText>}
+      {address && walletRestoring && <StatusText role="status" aria-live="polite">저장된 지갑 연결을 확인하고 있어요.</StatusText>}
       {(busy || restoring) && <StatusText role="status" aria-live="polite">{restoring ? "저장된 로그인 상태를 확인하고 있어요." : pendingAction === "logout" ? "로그인 정보를 정리하고 있어요." : pendingAction === "change" || pendingAction === "account" ? "새로 연결할 계정을 확인하고 있어요." : walletProgress === "signature" ? "지갑에서 서명 승인을 기다리고 있어요." : walletProgress === "verify" ? "서명한 지갑을 확인하고 있어요." : "지갑 연결을 준비하고 있어요."}</StatusText>}
-      {error && <ErrorArea><ErrorText role="alert">{error}</ErrorText>{!address && <RetryButton type="button" onClick={pendingSignatureAddress ? onContinueSignature : onConnect} disabled={busy || restoring}>다시 시도</RetryButton>}</ErrorArea>}
+      {error && <ErrorArea><ErrorText role="alert">{error}</ErrorText><RetryButton type="button" onClick={address ? onReconnect : pendingSignatureAddress ? onContinueSignature : onConnect} disabled={busy || restoring || walletRestoring}>다시 시도</RetryButton></ErrorArea>}
     </Panel>
   );
 }

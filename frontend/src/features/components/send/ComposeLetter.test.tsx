@@ -41,6 +41,18 @@ describe("ComposeLetter", () => {
     expect(props.onReset).toHaveBeenCalledOnce();
   });
 
+  it("keeps the draft but blocks sealing until the transaction wallet is restored", () => {
+    render(<ComposeLetter
+      {...props}
+      walletReady={false}
+      draft={{ ...draft, recipient: "0x2222222222222222222222222222222222222222", message: "안녕" }}
+    />);
+
+    expect(screen.getByText(/작성한 내용은 그대로 유지됩니다/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "지갑 연결 후 봉인" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(props.onSubmit).not.toHaveBeenCalled();
+  });
+
   it("offers clear next actions after sealing", () => {
     const transactionHash = `0x${"aa".repeat(32)}` as const;
     render(<ComposeLetter {...props} draft={{ ...draft, stage: "SEALED", transactionHash }} />);
