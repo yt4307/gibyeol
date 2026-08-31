@@ -64,8 +64,7 @@ rm -f -- \
 
 mkdir -p \
     "${BUILD_ROOT}/html/_gibyeol/var/cache" \
-    "${BUILD_ROOT}/html/_gibyeol/var/log" \
-    "${BUILD_ROOT}/html/_gibyeol/var/packages"
+    "${BUILD_ROOT}/html/_gibyeol/var/log"
 cp "${REPOSITORY_ROOT}/infra/dothome/root.htaccess" "${BUILD_ROOT}/html/.htaccess"
 cp "${REPOSITORY_ROOT}/infra/dothome/private.htaccess" "${BUILD_ROOT}/html/_gibyeol/.htaccess"
 cp "${REPOSITORY_ROOT}/infra/dothome/public-index.php" "${BUILD_ROOT}/html/index.php"

@@ -33,7 +33,7 @@ RPC URL, contract address, drand endpoint는 build/deploy 환경변수로 분리
 | `DRAND_CHAIN_HASH` | 예 | quicknet hash |
 | `DRAND_ENDPOINT` | 예 | 명시적 quicknet endpoint |
 | `UNLOCK_AT` | 예 | `1798124400` |
-| `PACKAGE_STORAGE_PATH` | 아니오 | web root 밖 absolute path |
+| `PACKAGE_STORAGE_PATH` | 아니오 | web root 밖의 쓰기 가능한 경로. 닷홈은 `html`을 기준으로 한 상대 경로 사용 |
 | `DATABASE_URL` | 아니오 | MySQL credential |
 | `SESSION_COOKIE_NAME` | 예 | 로컬 기본 `gibyeol_session`, 닷홈 운영 기본 `__Host-gibyeol_session_v2` |
 | `EMAIL_ENCRYPTION_KEY` | 아니오 | 32-byte server key |
