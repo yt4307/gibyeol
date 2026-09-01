@@ -2,7 +2,7 @@
 
 set -eu
 
-COMPOSE_FILE_PATH="${COMPOSE_FILE_PATH:-docker-compose.dev.yml}"
+COMPOSE_FILE_PATH="${COMPOSE_FILE_PATH:-compose.yml}"
 MIGRATION_PROJECT="gibyeol-migrations-$$"
 
 cleanup() {

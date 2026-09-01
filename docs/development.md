@@ -17,8 +17,8 @@ Node/PHP/Composer/Foundry를 호스트에 설치하지 않는다. Docker Desktop
 ```powershell
 Copy-Item .env.example .env
 Copy-Item backend/.env.local.example backend/.env.local
-docker compose -f docker-compose.dev.yml up -d --build
-docker compose -f docker-compose.dev.yml ps
+docker compose up -d --build
+docker compose ps
 ```
 
 `backend/.env.local`은 Symfony backend의 로컬 비밀값 전용 파일이며 Git에서 제외된다.
@@ -27,7 +27,7 @@ docker compose -f docker-compose.dev.yml ps
 `backend/.env.local`을 `backend/.env`보다 우선 적용한다. 실제 값은 `.env.local.example`이나
 루트 `.env`에 기록하지 않는다.
 
-개발 스택은 기본 Compose와 동시에 실행할 수 있도록 별도 project name과 host port를 사용한다.
+루트 `compose.yml`은 로컬 개발과 CI에서 공통으로 사용하는 유일한 Compose 구성이다.
 
 | 서비스 | 개발 주소 |
 |---|---|
@@ -41,13 +41,13 @@ docker compose -f docker-compose.dev.yml ps
 
 ```powershell
 # pnpm workspace lockfile 생성/갱신
-docker compose -f docker-compose.dev.yml run --rm frontend pnpm install
+docker compose run --rm frontend pnpm install
 
 # Symfony dependency lockfile과 Flex recipe lock 생성/갱신
-docker compose -f docker-compose.dev.yml run --rm backend composer update
+docker compose run --rm backend composer update
 
 # 변경된 이미지와 dependency로 재빌드
-docker compose -f docker-compose.dev.yml up -d --build
+docker compose up -d --build
 ```
 
 생성된 `pnpm-lock.yaml`, `backend/composer.lock`, `backend/symfony.lock`은 반드시 version control에 포함한다. 이후 일반 설치는 `pnpm install --frozen-lockfile`과 `composer install`을 사용하고, dependency 변경이 아닌 실행 과정에서 lockfile을 갱신하지 않는다.
@@ -56,33 +56,33 @@ docker compose -f docker-compose.dev.yml up -d --build
 
 ```powershell
 # 전체 로그 또는 개별 로그
-docker compose -f docker-compose.dev.yml logs -f
-docker compose -f docker-compose.dev.yml logs -f frontend backend
+docker compose logs -f
+docker compose logs -f frontend backend
 
 # frontend/protocol
-docker compose -f docker-compose.dev.yml exec frontend pnpm typecheck
-docker compose -f docker-compose.dev.yml exec frontend pnpm test
-docker compose -f docker-compose.dev.yml exec frontend pnpm build:frontend
+docker compose exec frontend pnpm typecheck
+docker compose exec frontend pnpm test
+docker compose exec frontend pnpm build:frontend
 
 # Storybook 로그와 정적 빌드
-docker compose -f docker-compose.dev.yml logs -f storybook
-docker compose -f docker-compose.dev.yml exec storybook pnpm build:storybook
+docker compose logs -f storybook
+docker compose exec storybook pnpm build:storybook
 
 # GitHub Pages용 static export 생성
-docker compose -f docker-compose.dev.yml run --rm --no-deps frontend pnpm build:frontend
+docker compose run --rm --no-deps frontend pnpm build:frontend
 
 # backend
-docker compose -f docker-compose.dev.yml exec backend php bin/console about
-docker compose -f docker-compose.dev.yml exec backend composer test
-docker compose -f docker-compose.dev.yml exec backend php bin/console doctrine:migrations:migrate
+docker compose exec backend php bin/console about
+docker compose exec backend composer test
+docker compose exec backend php bin/console doctrine:migrations:migrate
 
 # contracts
-docker compose -f docker-compose.dev.yml run --rm contracts build
-docker compose -f docker-compose.dev.yml run --rm contracts test
-docker compose -f docker-compose.dev.yml run --rm contracts fmt --check
+docker compose run --rm contracts build
+docker compose run --rm contracts test
+docker compose run --rm contracts fmt --check
 
 # MySQL
-docker compose -f docker-compose.dev.yml exec db mysql -u gibyeol -p gibyeol
+docker compose exec db mysql -u gibyeol -p gibyeol
 ```
 
 CI와 동일하게 격리된 빈 MySQL volume에서 모든 migration을 검증하려면 다음 명령을 사용한다. 검증용 volume은 실행 후 자동으로 제거된다.
@@ -91,23 +91,23 @@ CI와 동일하게 격리된 빈 MySQL volume에서 모든 migration을 검증�
 pnpm verify:migrations
 ```
 
-`contracts`는 상시 프로세스가 아닌 tool service라 개발 Compose의 `run --rm`으로 실행한다. `anvil`은 로컬 chain을 제공하는 상시 service다.
+`contracts`는 상시 프로세스가 아닌 tool service라 `compose.yml`의 `run --rm`으로 실행한다. `anvil`은 로컬 chain을 제공하는 상시 service다.
 
-`docker-compose.dev.yml`은 `name: gibyeol-dev`를 가진 독립 개발 스택이다. 기본 Compose의 모든 서비스를 별도 volume과 변경된 host port로 제공하며 Storybook도 포함한다. Frontend와 Storybook은 같은 source 및 pnpm volume을 공유하지만 별도 프로세스로 실행된다.
+`compose.yml`은 `name: gibyeol-dev`를 가진 개발 스택이며 Storybook을 포함한다. Frontend와 Storybook은 같은 source 및 pnpm volume을 공유하지만 별도 프로세스로 실행된다. 운영 프론트엔드는 GitHub Pages, 운영 백엔드는 닷홈에 각각 배포하므로 별도 운영 Compose는 두지 않는다.
 
 ## Dependency 변경
 
 Frontend/protocol dependency는 workspace root에서 실행한다.
 
 ```powershell
-docker compose -f docker-compose.dev.yml exec frontend pnpm --filter @gibyeol/frontend add package-name
-docker compose -f docker-compose.dev.yml exec frontend pnpm --filter @gibyeol/protocol add package-name
+docker compose exec frontend pnpm --filter @gibyeol/frontend add package-name
+docker compose exec frontend pnpm --filter @gibyeol/protocol add package-name
 ```
 
 Backend dependency는 backend container에서 실행한다.
 
 ```powershell
-docker compose -f docker-compose.dev.yml exec backend composer require vendor/package
+docker compose exec backend composer require vendor/package
 ```
 
 Protocol-sensitive dependency(tlock, drand, sodium adapter)는 PoC/golden vector를 통과한 정확한 버전으로 고정한다. 범위 버전이나 `latest`를 사용하지 않는다.
@@ -131,7 +131,7 @@ pnpm verify:quicknet
 | `backend_var` | Symfony cache/log | 안전하게 재생성 가능 |
 | `foundry_home` | Foundry/Solidity compiler cache | 재다운로드/재빌드 필요 |
 
-`docker compose -f docker-compose.dev.yml down`은 개발 volume을 유지한다. `docker compose -f docker-compose.dev.yml down -v`는 위 개발 데이터를 모두 제거하므로 명시적인 초기화 때만 사용한다.
+`docker compose down`은 개발 volume을 유지한다. `docker compose down -v`는 위 개발 데이터를 모두 제거하므로 명시적인 초기화 때만 사용한다.
 
 ## 환경변수 경계
 
